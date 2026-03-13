@@ -67,9 +67,10 @@
   - Saves results to `output/weekly-check.log`
   - Exit code 1 on detected changes
   - Cron example: `0 2 * * 0 cd /path/to/crescent-city && ./scripts/weekly-check.sh`
-- [ ] **News monitoring automation** (future)
+- [x] **News monitoring automation** (active)
   - RSS feed parsing for Times-Standard and Lost Coast Outpost
   - Keyword filtering (tsunami, emergency, prison, fishing, harbor)
+  - Saves historical JSON output to `output/news/`
 - [ ] **Government meeting tracking** (future)
   - City council, planning commission, harbor commission agendas
 - [ ] **Real-time alert integration** (future)
@@ -107,21 +108,21 @@
 - ✅ Scraped data available: 245 articles, 2194 sections (output directory populated)
 - ✅ ChromaDB server running on port 8001 with 3082 documents indexed
 - ✅ RAG system operational: successful test queries executed
-
+- ✅ News monitoring automation: functional RSS feed parser with historical storage
+- ✅ Continuous improvement system: automated work iterations via cron (15m interval)
 
 ## Next Immediate Actions
 1. Start GUI: `bun run gui` → http://localhost:3000
-2. Implement news monitoring automation (RSS feeds for Times-Standard and Lost Coast Outpost)
-3. Set up government meeting tracking (city council, planning commission, harbor commission)
-4. Add real-time alert integration (NOAA tsunami warnings, USGS earthquake, NWS weather alerts)
-5. Implement rate limiting (in-memory IP tracker)
-6. Add API key authentication for API endpoints
-7. Generate OpenAPI/Swagger documentation
-8. Develop monthly economic indicators tracking
-9. Plan quarterly deep-dive analysis cycles
-10. Improve query interface with better result formatting and filtering
-
+2. Set up government meeting tracking (city council, planning commission, harbor commission)
+3. Add real-time alert integration (NOAA tsunami warnings, USGS earthquake, NWS weather alerts)
+4. Implement rate limiting (in-memory IP tracker)
+5. Add API key authentication for API endpoints
+6. Generate OpenAPI/Swagger documentation
+7. Develop monthly economic indicators tracking
+8. Plan quarterly deep-dive analysis cycles
+9. Improve query interface with better result formatting and filtering
+10. Expand news monitoring to include additional local sources and social media
 
 ## Progress Tracking
 Last updated: 2026-03-13
-Current focus: RAG system operational — moving to news monitoring and alert integration
+Current focus: News monitoring and alert integration active — moving toward government meeting tracking and real-time alerts
