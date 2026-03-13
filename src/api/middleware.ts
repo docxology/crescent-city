@@ -29,8 +29,8 @@ export function rateLimitMiddleware() {
     }
 
     // Get client IP (simple implementation - in production handle proxies properly)
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || 
-               req.headers.get("x-real-ip") || 
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+               req.headers.get("x-real-ip") ||
                "unknown";
 
     // Skip rate limiting for localhost/internal IPs in development
@@ -56,8 +56,8 @@ export function rateLimitMiddleware() {
     // Check if limit exceeded
     if (record.count > RATE_LIMIT_MAX_REQUESTS) {
       const resetInSeconds = Math.ceil((record.resetTime - now) / 1000);
-      logger.warn(`Rate limit exceeded for IP ${ip}`, { 
-        count: record.count, 
+      logger.warn(`Rate limit exceeded for IP ${ip}`, {
+        count: record.count,
         limit: RATE_LIMIT_MAX_REQUESTS,
         resetInSeconds
       });
@@ -82,7 +82,7 @@ export function rateLimitMiddleware() {
 
     // Add rate limit info to headers for successful requests
     const remaining = Math.max(0, RATE_LIMIT_MAX_REQUESTS - record.count);
-    
+
     // We can't modify the response directly here, but we'll return info that handlers can use
     return {
       rateLimitInfo: {
@@ -107,7 +107,7 @@ export function apiKeyMiddleware() {
       "/api/domains",
       "/api/search"
     ];
-    
+
     const path = new URL(req.url).pathname;
     if (publicPaths.some(publicPath => path.startsWith(publicPath))) {
       return null;
@@ -115,7 +115,7 @@ export function apiKeyMiddleware() {
 
     // Check for API key in header
     const apiKey = req.headers.get("x-api-key");
-    
+
     // Also check query parameter as fallback
     const queryApiKey = new URL(req.url).searchParams.get("api_key");
     const keyToCheck = apiKey || queryApiKey;
@@ -167,11 +167,11 @@ export function requestLoggingMiddleware() {
     const start = Date.now();
     const url = new URL(req.url);
     const method = req.method;
-    
+
     // Log request
     logger.info(`${method} ${url.pathname}`, {
-      ip: req.headers.get("x-forwarded-for")?.split(",")[0].trim() || 
-            req.headers.get("x-real-ip") || 
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+            req.headers.get("x-real-ip") ||
             "unknown",
       userAgent: req.headers.get("user-agent")
     });

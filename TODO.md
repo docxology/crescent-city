@@ -5,21 +5,21 @@
 ## Current Focus: Real-time Alert Integration & API Enhancements
 
 ## Phase 1: Real-time Alert Integration (High Priority)
-- [ ] **Implement NOAA tsunami warning integration**
-  - Subscribe to NOAA CAP alerts for tsunami warnings
-  - Parse alert severity, affected areas, and timing
-  - Trigger automated notifications via existing monitoring channels
-  - Log alerts to output/alerts/tsunami/ with timestamps
-- [ ] **Integrate USGS earthquake alerts**
-  - Connect to USGS earthquake notification API
-  - Filter for earthquakes near Crescent City coast (within 200km, >4.0 magnitude)
-  - Extract location, magnitude, depth, and tsunami potential
-  - Store in output/alerts/earthquake/ with GeoJSON formatting
-- [ ] **Add NWS weather alert processing**
-  - Monitor National Weather Service alerts for coastal flood, high wind, and storm warnings
-  - Parse polygon-affected areas for Crescent City specificity
-  - Categorize by severity (advisory, watch, warning)
-  - Store in output/alerts/weather/ with standardized format
+- [x] **Implement NOAA tsunami warning integration**
+  - Subscribes to NOAA CAP alerts for tsunami warnings
+  - Parses alert severity, affected areas, and timing
+  - Triggers automated notifications via existing monitoring channels
+  - Logs alerts to output/alerts/tsunami/ with timestamps
+- [x] **Integrate USGS earthquake alerts**
+  - Connects to USGS earthquake notification API
+  - Filters for earthquakes near Crescent City coast (within 200km, >4.0 magnitude)
+  - Extracts location, magnitude, depth, and tsunami potential
+  - Stores in output/alerts/earthquake/ with GeoJSON formatting
+- [x] **Add NWS weather alert processing**
+  - Monitors National Weather Service alerts for coastal flood, high wind, and storm warnings
+  - Parses polygon-affected areas for Crescent City specificity
+  - Categorizes by severity (advisory, watch, warning)
+  - Stores in output/alerts/weather/ with standardized format
 
 ## Phase 2: API & Interface Improvements (Medium Priority)
 - [ ] **Implement rate limiting**
@@ -81,3 +81,4 @@
 Last updated: 2026-03-13
 Current focus: Implementing real-time alert integration and API enhancements
 Completed foundation: Technical infrastructure, RAG system, news monitoring, government meeting tracking
+Alert systems completed: NOAA tsunami, USGS earthquake, NWS weather monitoring
