@@ -11,7 +11,7 @@
     <a href="#-quick-start"><img src="https://img.shields.io/badge/Bun-v1.0+-black?logo=bun" alt="Bun"></a>
     <a href="docs/modules/llm.md"><img src="https://img.shields.io/badge/Ollama-RAG_Chat-blue?logo=ollama" alt="Ollama"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-CC_BY--SA_4.0-lightgrey" alt="License"></a>
-    <a href="#-test-suite"><img src="https://img.shields.io/badge/Tests-85_passing-brightgreen" alt="Tests"></a>
+    <a href="#-test-suite"><img src="https://img.shields.io/badge/Tests-135_passing-brightgreen" alt="Tests"></a>
   </p>
 </p>
 
@@ -155,7 +155,7 @@ src/
   shared/               # Path resolution + data loading
   gui/                  # HTTP server, routes, search, analytics
   llm/                  # Ollama, ChromaDB, embeddings, RAG
-tests/                  # 85 unit tests across 9 files
+tests/                  # 135 unit tests across 15 files
 docs/                   # Full documentation suite
 output/                 # Scraped data (gitignored)
 ```
@@ -198,7 +198,7 @@ The Crescent City Code of Ordinances covers **17 titles** across **242 articles*
 ## 🧪 Test Suite
 
 ```
-85 pass · 0 fail · 185 assertions · 9 test files
+135 pass · 0 fail · 435 assertions · 15 test files
 ```
 
 | Test File | Module | Tests |
@@ -207,11 +207,17 @@ The Crescent City Code of Ordinances covers **17 titles** across **242 articles*
 | `toc.test.ts` | Article pages, sections, TOC summary | 10 |
 | `shared-paths.test.ts` | All output path constants | 10 |
 | `constants.test.ts` | Project constants | 5 |
+| `constants-extended.test.ts` | Configurable constants + env overrides | 10 |
 | `llm-config.test.ts` | LLM configuration values | 8 |
 | `shared-data.test.ts` | Data loading functions | 6 |
 | `search.test.ts` | Search engine + relevance | 8 |
 | `analytics.test.ts` | PCA, K-means, word loadings | 7 |
 | `routes.test.ts` | API route handlers | 7 |
+| `logger.test.ts` | Structured logger levels + output | 6 |
+| `embeddings.test.ts` | Text chunking for embeddings | 7 |
+| `export.test.ts` | CSV, Markdown, filename formatting | 12 |
+| `domains.test.ts` | Intelligence domains data + search | 14 |
+| `monitor.test.ts` | Monitor report types + validation | 3 |
 
 Run all tests: `bun test`
 
@@ -246,6 +252,7 @@ All LLM settings support environment variable overrides:
 | `CHAT_MODEL` | `gemma3:4b` | Chat / summarization model |
 | `CHROMA_URL` | `http://localhost:8000` | ChromaDB server |
 | `PORT` | `3000` | GUI server port |
+| `LOG_LEVEL` | `info` | Logger verbosity (debug/info/warn/error) |
 
 > 🔧 **Full configuration reference**: [docs/configuration.md](docs/configuration.md) — constants, LLM tuning, analytics parameters
 

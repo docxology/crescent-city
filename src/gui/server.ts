@@ -2,6 +2,9 @@
 /** GUI server — lightweight HTML viewer served by Bun.serve() */
 import { handleApiRoute } from "./routes.js";
 import { initSearch } from "./search.js";
+import { createLogger } from "../logger.js";
+
+const log = createLogger("gui");
 
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const STATIC_DIR = new URL("static/", import.meta.url).pathname;
@@ -31,4 +34,4 @@ const server = Bun.serve({
   },
 });
 
-console.log(`Municipal Code Viewer running at http://localhost:${server.port}`);
+log.info(`Municipal Code Viewer running at http://localhost:${server.port}`);

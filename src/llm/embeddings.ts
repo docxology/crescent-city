@@ -3,10 +3,14 @@ import { loadAllSections } from "../shared/data.js";
 import { embed, embedBatch } from "./ollama.js";
 import { addDocuments, getStats } from "./chroma.js";
 import { llmConfig } from "./config.js";
+import { EMBED_BATCH_SIZE } from "../constants.js";
+import { createLogger } from "../logger.js";
 import type { FlatSection } from "../types.js";
 
+const log = createLogger("embeddings");
+
 /** Split text into overlapping chunks */
-function chunkText(
+export function chunkText(
   text: string,
   chunkSize = llmConfig.chunkSize,
   overlap = llmConfig.chunkOverlap
@@ -35,14 +39,14 @@ export async function isIndexed(): Promise<boolean> {
 
 /** Index all sections into ChromaDB */
 export async function indexAllSections(): Promise<void> {
-  console.log("Loading all sections...");
+  log.info("Loading all sections...");
   const sections = await loadAllSections();
-  console.log(`Found ${sections.length} sections to index`);
+  log.info(`Found ${sections.length} sections to index`);
 
   // Check existing index
   const stats = await getStats();
   if (stats.count > 0) {
-    console.log(`Collection already has ${stats.count} documents`);
+    log.info(`Collection already has ${stats.count} documents`);
   }
 
   // Prepare chunks with metadata
@@ -72,14 +76,13 @@ export async function indexAllSections(): Promise<void> {
     }
   }
 
-  console.log(`Total chunks to embed: ${allChunks.length}`);
+  log.info(`Total chunks to embed: ${allChunks.length}`);
 
   // Process in batches
-  const BATCH_SIZE = 32;
   let indexed = 0;
 
-  for (let i = 0; i < allChunks.length; i += BATCH_SIZE) {
-    const batch = allChunks.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < allChunks.length; i += EMBED_BATCH_SIZE) {
+    const batch = allChunks.slice(i, i + EMBED_BATCH_SIZE);
     const texts = batch.map((c) => c.text);
 
     try {
@@ -94,10 +97,10 @@ export async function indexAllSections(): Promise<void> {
 
       indexed += batch.length;
       if (indexed % 100 === 0 || indexed === allChunks.length) {
-        console.log(`Indexed ${indexed}/${allChunks.length} chunks...`);
+        log.info(`Indexed ${indexed}/${allChunks.length} chunks...`);
       }
     } catch (err: any) {
-      console.error(`Error indexing batch at ${i}: ${err.message}`);
+      log.error(`Error indexing batch at ${i}`, { error: err.message });
       // Try one at a time as fallback
       for (const chunk of batch) {
         try {
@@ -110,12 +113,12 @@ export async function indexAllSections(): Promise<void> {
           });
           indexed++;
         } catch (e: any) {
-          console.error(`Failed to index chunk ${chunk.id}: ${e.message}`);
+          log.error(`Failed to index chunk ${chunk.id}`, { error: e.message });
         }
       }
     }
   }
 
   const finalStats = await getStats();
-  console.log(`\nIndexing complete: ${finalStats.count} documents in collection`);
+  log.info(`Indexing complete: ${finalStats.count} documents in collection`);
 }

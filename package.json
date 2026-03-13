@@ -12,7 +12,8 @@
     "index": "bun run src/llm/index.ts index",
     "chat": "bun run src/llm/index.ts chat",
     "query": "bun run src/llm/index.ts query",
-    "status": "bun run src/llm/index.ts status"
+    "status": "bun run src/llm/index.ts status",
+    "monitor": "bun run src/monitor.ts"
   },
   "dependencies": {
     "@chroma-core/default-embed": "^0.1.9",

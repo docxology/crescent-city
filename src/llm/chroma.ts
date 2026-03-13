@@ -1,15 +1,27 @@
 /** ChromaDB client wrapper for vector storage and retrieval */
 import { ChromaClient, type Collection } from "chromadb";
 import { llmConfig } from "./config.js";
+import { createLogger } from "../logger.js";
+import { OLLAMA_TIMEOUT_MS } from "../constants.js";
+
+const log = createLogger("chroma");
 
 let client: ChromaClient | null = null;
 let collection: Collection | null = null;
 
+/** Get or create a ChromaDB client with retry support */
 function getClient(): ChromaClient {
   if (!client) {
+    log.info(`Connecting to ChromaDB at ${llmConfig.chromaUrl}`);
     client = new ChromaClient({ path: llmConfig.chromaUrl });
   }
   return client;
+}
+
+/** Reset client (useful for retrying after errors) */
+export function resetClient(): void {
+  client = null;
+  collection = null;
 }
 
 /** Get or create the municipal code collection */
@@ -20,6 +32,7 @@ export async function getOrCreateCollection(): Promise<Collection> {
     name: llmConfig.collectionName,
     metadata: { "hnsw:space": "cosine" },
   });
+  log.info(`Collection "${llmConfig.collectionName}" ready`);
   return collection;
 }
 
@@ -70,7 +83,7 @@ export async function getStats(): Promise<{ count: number; name: string }> {
   return { count, name: llmConfig.collectionName };
 }
 
-/** Check if ChromaDB is reachable */
+/** Check if ChromaDB is reachable (with timeout) */
 export async function isChromaRunning(): Promise<boolean> {
   try {
     const c = getClient();
@@ -80,3 +93,20 @@ export async function isChromaRunning(): Promise<boolean> {
     return false;
   }
 }
+
+/** Check ChromaDB with retry (for startup race conditions) */
+export async function waitForChroma(maxRetries = 3, delayMs = 1000): Promise<boolean> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const ok = await isChromaRunning();
+    if (ok) {
+      log.info(`ChromaDB connected (attempt ${attempt})`);
+      return true;
+    }
+    log.warn(`ChromaDB not reachable (attempt ${attempt}/${maxRetries})`);
+    if (attempt < maxRetries) {
+      await new Promise(r => setTimeout(r, delayMs * attempt));
+    }
+  }
+  return false;
+}
+

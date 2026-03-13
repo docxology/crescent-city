@@ -16,9 +16,9 @@ describe("llmConfig", () => {
         expect(llmConfig.chatModel).toBe("gemma3:4b");
     });
 
-    test("chromaUrl defaults to localhost:8000", () => {
+    test("chromaUrl defaults to localhost:8001", () => {
         expect(llmConfig.chromaUrl).toContain("localhost");
-        expect(llmConfig.chromaUrl).toContain("8000");
+        expect(llmConfig.chromaUrl).toContain("8001");
     });
 
     test("collectionName is crescent-city-code", () => {

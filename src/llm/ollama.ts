@@ -1,6 +1,10 @@
 /** Ollama API wrapper for embeddings and chat */
 import type { ChatMessage } from "../types.js";
 import { llmConfig } from "./config.js";
+import { OLLAMA_TIMEOUT_MS } from "../constants.js";
+import { createLogger } from "../logger.js";
+
+const log = createLogger("ollama");
 
 const BASE = () => llmConfig.ollamaUrl;
 
@@ -13,6 +17,7 @@ export async function embed(text: string): Promise<number[]> {
       model: llmConfig.embeddingModel,
       input: text,
     }),
+    signal: AbortSignal.timeout(OLLAMA_TIMEOUT_MS),
   });
 
   if (!resp.ok) {
@@ -32,6 +37,7 @@ export async function embedBatch(texts: string[]): Promise<number[][]> {
       model: llmConfig.embeddingModel,
       input: texts,
     }),
+    signal: AbortSignal.timeout(OLLAMA_TIMEOUT_MS),
   });
 
   if (!resp.ok) {
@@ -62,6 +68,7 @@ export async function chat(
     ...messages,
   ];
 
+  log.debug(`Chat request to ${llmConfig.chatModel}`, { messageCount: String(fullMessages.length) });
   const resp = await fetch(`${BASE()}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,6 +77,7 @@ export async function chat(
       messages: fullMessages,
       stream: false,
     }),
+    signal: AbortSignal.timeout(OLLAMA_TIMEOUT_MS * 4), // Chat can take longer
   });
 
   if (!resp.ok) {

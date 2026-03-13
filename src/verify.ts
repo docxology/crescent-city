@@ -24,8 +24,10 @@ import { getArticlePages, getSections } from "./toc.js";
 import { newPage, closeBrowser, navigateWithCloudflare } from "./browser.js";
 import { computeSha256, shuffle } from "./utils.js";
 import { paths } from "./shared/paths.js";
+import { VERIFY_SAMPLE_SIZE } from "./constants.js";
+import { createLogger } from "./logger.js";
 
-const SAMPLE_SIZE = 5; // Number of random pages to re-fetch for byte comparison
+const log = createLogger("verifier");
 
 /**
  * Recursively collect all section GUIDs that are descendants of a given node.
@@ -44,10 +46,10 @@ function collectDescendantSections(node: TocNode): TocNode[] {
 }
 
 async function main() {
-  console.log("=== Crescent City Municipal Code Verifier ===\n");
+  log.info("=== Crescent City Municipal Code Verifier ===");
 
   if (!existsSync(paths.toc) || !existsSync(paths.manifest)) {
-    console.error("ERROR: Run the scraper first (bun run scrape)");
+    log.error("Run the scraper first (bun run scrape)");
     process.exit(1);
   }
 
@@ -57,9 +59,9 @@ async function main() {
   const expectedArticles = getArticlePages(toc);
   const expectedSections = getSections(toc);
 
-  console.log(`Expected articles: ${expectedArticles.length}`);
-  console.log(`Expected sections: ${expectedSections.length}`);
-  console.log(`Scraped articles: ${Object.keys(manifest.articles).length}\n`);
+  log.info(`Expected articles: ${expectedArticles.length}`);
+  log.info(`Expected sections: ${expectedSections.length}`);
+  log.info(`Scraped articles: ${Object.keys(manifest.articles).length}`);
 
   const results: VerificationResult[] = [];
   const allMissingSections: string[] = [];
@@ -133,18 +135,18 @@ async function main() {
 
     const icon = status === "pass" ? "PASS" : "FAIL";
     if (status === "fail") {
-      console.log(
-        `  [${icon}] ${article.indexNum}: ${article.title} ` +
-          `(file=${checks.fileExists}, hash=${checks.sha256Match}, ` +
-          `sections=${checks.foundSections}/${checks.expectedSections}, ` +
-          `missing=${checks.missingSections.length})`
-      );
+      log.warn(`[FAIL] ${article.indexNum}: ${article.title}`, {
+        fileExists: String(checks.fileExists),
+        sha256Match: String(checks.sha256Match),
+        sections: `${checks.foundSections}/${checks.expectedSections}`,
+        missing: String(checks.missingSections.length),
+      });
     }
   }
 
   // Step 2: Random sample re-fetch verification
-  console.log(`\n--- Random Sample Re-fetch (${SAMPLE_SIZE} pages) ---\n`);
-  const sampleArticles = shuffle(expectedArticles).slice(0, SAMPLE_SIZE);
+  log.info(`--- Random Sample Re-fetch (${VERIFY_SAMPLE_SIZE} pages) ---`);
+  const sampleArticles = shuffle(expectedArticles).slice(0, VERIFY_SAMPLE_SIZE);
   let samplePasses = 0;
 
   const page = await newPage();
@@ -152,11 +154,11 @@ async function main() {
   for (const article of sampleArticles) {
     const filePath = paths.article(article.guid);
     if (!existsSync(filePath)) {
-      console.log(`  [SKIP] ${article.indexNum}: file not found`);
+      log.warn(`[SKIP] ${article.indexNum}: file not found`);
       continue;
     }
 
-    console.log(`  Re-fetching: ${article.indexNum} ${article.title}...`);
+    log.info(`Re-fetching: ${article.indexNum} ${article.title}...`);
 
     try {
       await navigateWithCloudflare(page, `https://ecode360.com/${article.guid}`);
@@ -176,15 +178,16 @@ async function main() {
       const savedHash = await computeSha256(savedData.rawHtml);
 
       if (liveHash === savedHash) {
-        console.log(`  [MATCH] ${article.indexNum}: SHA-256 matches live site`);
+        log.info(`[MATCH] ${article.indexNum}: SHA-256 matches live site`);
         samplePasses++;
       } else {
-        console.log(`  [MISMATCH] ${article.indexNum}: Content has changed!`);
-        console.log(`    Saved:  ${savedHash.substring(0, 32)}...`);
-        console.log(`    Live:   ${liveHash.substring(0, 32)}...`);
+        log.warn(`[MISMATCH] ${article.indexNum}: Content has changed!`, {
+          saved: savedHash.substring(0, 32),
+          live: liveHash.substring(0, 32),
+        });
       }
     } catch (err: any) {
-      console.log(`  [ERROR] ${article.indexNum}: ${err.message}`);
+      log.error(`Re-fetch failed: ${article.indexNum}`, { error: err.message });
     }
 
     await new Promise((r) => setTimeout(r, 2000));
@@ -214,13 +217,13 @@ async function main() {
   await writeFile(paths.verificationReport, JSON.stringify(report, null, 2));
 
   // Summary
-  console.log("\n=== Verification Summary ===");
-  console.log(`  Articles: ${passCount} pass / ${failCount} fail / ${expectedArticles.length} total`);
-  console.log(`  Sections: ${totalFoundSections} found / ${expectedSections.length} expected`);
-  console.log(`  Missing sections: ${allMissingSections.length}`);
-  console.log(`  Sample re-fetch: ${samplePasses}/${sampleArticles.length} match`);
-  console.log(`  Overall: ${report.overallStatus.toUpperCase()}`);
-  console.log(`\nReport: ${paths.verificationReport}`);
+  log.info("=== Verification Summary ===");
+  log.info(`Articles: ${passCount} pass / ${failCount} fail / ${expectedArticles.length} total`);
+  log.info(`Sections: ${totalFoundSections} found / ${expectedSections.length} expected`);
+  log.info(`Missing sections: ${allMissingSections.length}`);
+  log.info(`Sample re-fetch: ${samplePasses}/${sampleArticles.length} match`);
+  log.info(`Overall: ${report.overallStatus.toUpperCase()}`);
+  log.info(`Report: ${paths.verificationReport}`);
 
   if (report.overallStatus === "fail") {
     process.exit(1);
@@ -228,6 +231,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Fatal error:", err);
+  log.error("Fatal error", { error: String(err) });
   closeBrowser().finally(() => process.exit(1));
 });

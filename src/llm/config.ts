@@ -11,7 +11,7 @@ export const llmConfig = {
   chatModel: process.env.CHAT_MODEL ?? "gemma3:4b",
 
   /** ChromaDB server URL */
-  chromaUrl: process.env.CHROMA_URL ?? "http://localhost:8000",
+  chromaUrl: process.env.CHROMA_URL ?? "http://localhost:8001",
 
   /** ChromaDB collection name */
   collectionName: "crescent-city-code",

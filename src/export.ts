@@ -14,12 +14,15 @@ import type { TocNode, ArticlePage } from "./types.js";
 import { flattenToc, htmlToText, csvEscape, sanitizeFilename } from "./utils.js";
 import { loadToc, loadManifest, loadAllArticles } from "./shared/data.js";
 import { paths } from "./shared/paths.js";
+import { createLogger } from "./logger.js";
+
+const log = createLogger("export");
 
 async function main() {
-  console.log("=== Crescent City Municipal Code Exporter ===\n");
+  log.info("=== Crescent City Municipal Code Exporter ===");
 
   if (!existsSync(paths.toc) || !existsSync(paths.manifest)) {
-    console.error("ERROR: Run the scraper first (bun run scrape)");
+    log.error("Run the scraper first (bun run scrape)");
     process.exit(1);
   }
 
@@ -27,10 +30,10 @@ async function main() {
   const manifest = await loadManifest();
   const articles = await loadAllArticles();
 
-  console.log(`Loaded ${articles.length} article files\n`);
+  log.info(`Loaded ${articles.length} article files`);
 
   // Export 1: Consolidated JSON
-  console.log("Exporting consolidated JSON...");
+  log.info("Exporting consolidated JSON...");
   const consolidated = {
     municipality: toc.tocName,
     guid: toc.guid,
@@ -55,10 +58,10 @@ async function main() {
     paths.consolidatedJson,
     JSON.stringify(consolidated, null, 2)
   );
-  console.log(`  -> ${paths.consolidatedJson}`);
+  log.info(`  -> ${paths.consolidatedJson}`);
 
   // Export 2: Markdown by title/chapter
-  console.log("Exporting Markdown files...");
+  log.info("Exporting Markdown files...");
   const mdDir = paths.markdown;
   await mkdir(mdDir, { recursive: true });
 
@@ -140,10 +143,10 @@ async function main() {
     }
   }
 
-  console.log(`  -> ${paths.markdown}/`);
+  log.info(`  -> ${paths.markdown}/`);
 
   // Export 3: Plain text corpus
-  console.log("Exporting plain text corpus...");
+  log.info("Exporting plain text corpus...");
   const textLines: string[] = [
     `CRESCENT CITY, CA - CODE OF ORDINANCES`,
     `Source: https://ecode360.com/CR4919`,
@@ -165,10 +168,10 @@ async function main() {
   }
 
   await writeFile(paths.plainText, textLines.join("\n"));
-  console.log(`  -> ${paths.plainText}`);
+  log.info(`  -> ${paths.plainText}`);
 
   // Export 4: Section index CSV
-  console.log("Exporting section index CSV...");
+  log.info("Exporting section index CSV...");
   const csvLines = ["guid,number,title,chapter_guid,chapter_number,chapter_title,history"];
   for (const article of articles) {
     for (const section of article.sections) {
@@ -186,17 +189,17 @@ async function main() {
     }
   }
   await writeFile(paths.sectionIndex, csvLines.join("\n"));
-  console.log(`  -> ${paths.sectionIndex}`);
+  log.info(`  -> ${paths.sectionIndex}`);
 
   // Summary
   const totalSections = articles.reduce((s, a) => s + a.sections.length, 0);
-  console.log(`\n=== Export Complete ===`);
-  console.log(`  Articles: ${articles.length}`);
-  console.log(`  Sections: ${totalSections}`);
-  console.log(`  Formats: JSON, Markdown, Plain Text, CSV`);
+  log.info("=== Export Complete ===");
+  log.info(`  Articles: ${articles.length}`);
+  log.info(`  Sections: ${totalSections}`);
+  log.info(`  Formats: JSON, Markdown, Plain Text, CSV`);
 }
 
 main().catch((err) => {
-  console.error("Fatal error:", err);
+  log.error("Fatal error", { error: String(err) });
   process.exit(1);
 });

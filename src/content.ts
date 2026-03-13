@@ -8,8 +8,11 @@
 import type { Page } from "playwright";
 import type { TocNode, ArticlePage, SectionContent } from "./types.js";
 import { navigateWithCloudflare } from "./browser.js";
-import { BASE_URL, RATE_LIMIT_MS } from "./constants.js";
+import { BASE_URL, RATE_LIMIT_MS, SCRAPE_TIMEOUT_MS, SPA_RENDER_MS } from "./constants.js";
 import { computeSha256 } from "./utils.js";
+import { createLogger } from "./logger.js";
+
+const log = createLogger("content");
 
 /**
  * Extract all section-type descendant GUIDs from a TOC node.
@@ -38,9 +41,9 @@ async function scrapeSectionPage(
   const url = `${BASE_URL}/${sectionGuid}`;
   try {
     await navigateWithCloudflare(page, url);
-    await page.waitForSelector("#codeContent", { timeout: 30_000 })
+    await page.waitForSelector("#codeContent", { timeout: SCRAPE_TIMEOUT_MS / 2 })
       .catch(() => { });
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(SPA_RENDER_MS / 2);
 
     const result = await page.evaluate((guid) => {
       // Try the standard pattern first
@@ -83,7 +86,7 @@ async function scrapeSectionPage(
       history: result.history,
     };
   } catch (err: any) {
-    console.warn(`  [deep] Failed to scrape section ${sectionNumber}: ${err.message?.split("\n")[0]}`);
+    log.warn(`Failed to deep-scrape section ${sectionNumber}`, { error: err.message?.split("\n")[0] });
     return null;
   }
 }
@@ -101,9 +104,9 @@ export async function scrapeArticlePage(
   await navigateWithCloudflare(page, url);
 
   // Wait for code content to render
-  await page.waitForSelector("#codeContent", { timeout: 30_000 })
-    .catch((e) => console.warn("codeContent selector timeout:", e.message));
-  await page.waitForTimeout(1500);
+  await page.waitForSelector("#codeContent", { timeout: SCRAPE_TIMEOUT_MS / 2 })
+    .catch((e) => log.warn("codeContent selector timeout", { error: e.message }));
+  await page.waitForTimeout(SPA_RENDER_MS);
 
   // Extract the raw HTML of the code content area
   const rawHtml = await page.evaluate(() => {
@@ -164,7 +167,7 @@ export async function scrapeArticlePage(
   // the article uses subarticle layout, so scrape each section page individually
   const expectedSections = getSectionGuids(article);
   if (finalSections.length === 0 && expectedSections.length > 0) {
-    console.log(`  [deep] Subarticle layout detected — deep-scraping ${expectedSections.length} sections individually`);
+    log.info(`Subarticle layout detected — deep-scraping ${expectedSections.length} sections individually`);
     const deepSections: SectionContent[] = [];
 
     for (const { guid, number, title } of expectedSections) {
@@ -176,7 +179,7 @@ export async function scrapeArticlePage(
     }
 
     finalSections = deepSections;
-    console.log(`  [deep] Extracted ${deepSections.length}/${expectedSections.length} sections`);
+    log.info(`Deep-scraped ${deepSections.length}/${expectedSections.length} sections`);
   }
 
   const sha256 = await computeSha256(rawHtml);

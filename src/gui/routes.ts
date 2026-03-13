@@ -1,17 +1,63 @@
 /** API route handlers for the GUI server */
 import { loadToc, loadArticle, loadManifest } from "../shared/data.js";
 import { search, getIndexedCount } from "./search.js";
-import { ragQuery } from "../llm/rag.js";
-import { isOllamaRunning, chat } from "../llm/ollama.js";
-import { isChromaRunning } from "../llm/chroma.js";
-import { isIndexed } from "../llm/embeddings.js";
+import { createLogger } from "../logger.js";
 import { llmConfig } from "../llm/config.js";
-import { getCodeStats, getEmbeddingProjection } from "./analytics.js";
+
+const log = createLogger("routes");
+
+// ─── Dynamic LLM imports (graceful degradation) ─────────────────
+
+/** Lazily load LLM modules — returns null if dependencies are unavailable */
+async function loadLlmModules() {
+  try {
+    const [rag, ollama, chroma, embeddings, analytics] = await Promise.all([
+      import("../llm/rag.js"),
+      import("../llm/ollama.js"),
+      import("../llm/chroma.js"),
+      import("../llm/embeddings.js"),
+      import("./analytics.js"),
+    ]);
+    return { rag, ollama, chroma, embeddings, analytics };
+  } catch (err: any) {
+    log.warn("LLM modules unavailable — chat/analytics/summarize disabled", { error: err.message });
+    return null;
+  }
+}
+
+let llmModules: Awaited<ReturnType<typeof loadLlmModules>> = null;
+let llmModulesLoaded = false;
+
+/** Get LLM modules, loading once lazily */
+async function getLlm() {
+  if (!llmModulesLoaded) {
+    llmModules = await loadLlmModules();
+    llmModulesLoaded = true;
+  }
+  return llmModules;
+}
+
+// ─── Route handler ───────────────────────────────────────────────
 
 /** Route an API request and return a Response */
 export async function handleApiRoute(url: URL, req?: Request): Promise<Response> {
   const path = url.pathname;
+  const start = performance.now();
 
+  let response: Response;
+  try {
+    response = await routeRequest(path, url, req);
+  } catch (err: any) {
+    log.error(`Unhandled error on ${path}`, { error: err.message });
+    response = json({ error: "Internal server error" }, 500);
+  }
+
+  const ms = (performance.now() - start).toFixed(1);
+  log.debug(`${path} -> ${response.status} (${ms}ms)`);
+  return response;
+}
+
+async function routeRequest(path: string, url: URL, req?: Request): Promise<Response> {
   // GET /api/toc
   if (path === "/api/toc") {
     try {
@@ -29,7 +75,7 @@ export async function handleApiRoute(url: URL, req?: Request): Promise<Response>
       const article = await loadArticle(articleMatch[1]);
       return json(article);
     } catch (err) {
-      console.error(`Error loading article ${articleMatch[1]}:`, err);
+      log.error(`Error loading article ${articleMatch[1]}`, { error: String(err) });
       return json({ error: "Article not found" }, 404);
     }
   }
@@ -39,7 +85,6 @@ export async function handleApiRoute(url: URL, req?: Request): Promise<Response>
   if (sectionMatch) {
     try {
       const guid = sectionMatch[1];
-      // Search through articles to find the section
       const manifest = await loadManifest();
       for (const entry of Object.values(manifest.articles)) {
         const article = await loadArticle(entry.guid);
@@ -54,7 +99,7 @@ export async function handleApiRoute(url: URL, req?: Request): Promise<Response>
       }
       return json({ error: "Section not found" }, 404);
     } catch (err) {
-      console.error(`Error loading section ${sectionMatch[1]}:`, err);
+      log.error(`Error loading section ${sectionMatch[1]}`, { error: String(err) });
       return json({ error: "Section not found" }, 404);
     }
   }
@@ -85,6 +130,8 @@ export async function handleApiRoute(url: URL, req?: Request): Promise<Response>
     }
   }
 
+  // ─── LLM-dependent routes ────────────────────────────────────
+
   // GET /api/chat — RAG query
   if (path === "/api/chat") {
     const q = url.searchParams.get("q") ?? "";
@@ -92,24 +139,28 @@ export async function handleApiRoute(url: URL, req?: Request): Promise<Response>
       return json({ error: "No question provided" }, 400);
     }
 
+    const llm = await getLlm();
+    if (!llm) {
+      return json({ error: "LLM modules unavailable. Install chromadb package and restart." }, 503);
+    }
+
     try {
-      // Check prerequisites
-      const ollama = await isOllamaRunning();
+      const ollama = await llm.ollama.isOllamaRunning();
       if (!ollama) {
         return json({ error: "Ollama is not running. Start it with: ollama serve" }, 503);
       }
-      const chroma = await isChromaRunning();
+      const chroma = await llm.chroma.isChromaRunning();
       if (!chroma) {
         return json({ error: "ChromaDB is not running. Start it with: chroma run --path chroma_data" }, 503);
       }
-      const indexed = await isIndexed();
+      const indexed = await llm.embeddings.isIndexed();
       if (!indexed) {
         return json({ error: "No documents indexed. Run: bun run index" }, 503);
       }
 
-      console.log(`[chat] Query: ${q}`);
-      const result = await ragQuery(q);
-      console.log(`[chat] Answer: ${result.answer.substring(0, 100)}...`);
+      log.info(`[chat] Query: ${q}`);
+      const result = await llm.rag.ragQuery(q);
+      log.info(`[chat] Answer: ${result.answer.substring(0, 100)}...`);
 
       return json({
         answer: result.answer,
@@ -117,45 +168,57 @@ export async function handleApiRoute(url: URL, req?: Request): Promise<Response>
         model: result.model,
       });
     } catch (err: any) {
-      console.error("[chat] RAG error:", err.message);
+      log.error("[chat] RAG error", { error: err.message });
       return json({ error: `RAG query failed: ${err.message}` }, 500);
     }
   }
 
   // GET /api/analytics/stats — municipal code statistics
   if (path === "/api/analytics/stats") {
+    const llm = await getLlm();
+    if (!llm) {
+      return json({ error: "Analytics modules unavailable" }, 503);
+    }
     try {
-      console.log("[analytics] Computing code stats...");
-      const stats = await getCodeStats();
-      console.log(`[analytics] Stats computed: ${stats.totalSections} sections, ${stats.totalWords} words`);
+      log.info("[analytics] Computing code stats...");
+      const stats = await llm.analytics.getCodeStats();
+      log.info(`[analytics] Stats computed: ${stats.totalSections} sections, ${stats.totalWords} words`);
       return json(stats);
     } catch (err: any) {
-      console.error("[analytics] Stats error:", err.message);
+      log.error("[analytics] Stats error", { error: err.message });
       return json({ error: `Failed to compute stats: ${err.message}` }, 500);
     }
   }
 
-  // GET /api/analytics/embeddings — PCA projection of embeddings
+  // GET /api/analytics/embeddings — PCA projection
   if (path === "/api/analytics/embeddings") {
+    const llm = await getLlm();
+    if (!llm) {
+      return json({ error: "Analytics modules unavailable" }, 503);
+    }
     try {
-      const chroma = await isChromaRunning();
+      const chroma = await llm.chroma.isChromaRunning();
       if (!chroma) {
         return json({ error: "ChromaDB is not running" }, 503);
       }
-      console.log("[analytics] Computing PCA projection...");
-      const projection = await getEmbeddingProjection();
-      console.log(`[analytics] PCA computed: ${projection.points.length} points`);
+      log.info("[analytics] Computing PCA projection...");
+      const projection = await llm.analytics.getEmbeddingProjection();
+      log.info(`[analytics] PCA computed: ${projection.points.length} points`);
       return json(projection);
     } catch (err: any) {
-      console.error("[analytics] Embeddings error:", err.message);
+      log.error("[analytics] Embeddings error", { error: err.message });
       return json({ error: `Failed to compute projection: ${err.message}` }, 500);
     }
   }
 
   // POST /api/summarize — summarize a section using Ollama
   if (path === "/api/summarize") {
+    const llm = await getLlm();
+    if (!llm) {
+      return json({ error: "LLM modules unavailable" }, 503);
+    }
     try {
-      const ollama = await isOllamaRunning();
+      const ollama = await llm.ollama.isOllamaRunning();
       if (!ollama) {
         return json({ error: "Ollama is not running. Start it with: ollama serve" }, 503);
       }
@@ -166,9 +229,9 @@ export async function handleApiRoute(url: URL, req?: Request): Promise<Response>
         return json({ error: "No text provided to summarize" }, 400);
       }
 
-      console.log(`[summarize] Summarizing: ${number} — ${title}`);
+      log.info(`[summarize] Summarizing: ${number} — ${title}`);
 
-      const summary = await chat(
+      const summary = await llm.ollama.chat(
         [{ role: "user", content: `Summarize the following municipal code section comprehensively.\n\nSection: ${number}: ${title}\n\nText:\n${text.substring(0, 8000)}` }],
         "You are a legal analysis assistant specializing in municipal code. " +
         "Provide a clear, comprehensive summary that covers: " +
@@ -179,11 +242,55 @@ export async function handleApiRoute(url: URL, req?: Request): Promise<Response>
         "Be thorough but concise. Use bullet points where appropriate.",
       );
 
-      console.log(`[summarize] Summary generated for ${number} (${summary.length} chars)`);
+      log.info(`[summarize] Summary generated for ${number} (${summary.length} chars)`);
       return json({ summary, model: llmConfig.chatModel });
     } catch (err: any) {
-      console.error("[summarize] Error:", err.message);
+      log.error("[summarize] Error", { error: err.message });
       return json({ error: `Summarization failed: ${err.message}` }, 500);
+    }
+  }
+
+  // ─── Intelligence Domain routes ──────────────────────────────
+
+  // GET /api/domains — list all intelligence domains
+  if (path === "/api/domains") {
+    const { getDomainSummaries } = await import("../domains.js");
+    return json(getDomainSummaries());
+  }
+
+  // GET /api/domain/:id — get a specific domain with all topics
+  const domainMatch = path.match(/^\/api\/domain\/([a-z-]+)$/);
+  if (domainMatch) {
+    const { getDomainById } = await import("../domains.js");
+    const domain = getDomainById(domainMatch[1]);
+    if (!domain) {
+      return json({ error: `Domain "${domainMatch[1]}" not found` }, 404);
+    }
+    return json(domain);
+  }
+
+  // GET /api/domains/search?q=... — search across domains
+  if (path === "/api/domains/search") {
+    const q = url.searchParams.get("q") ?? "";
+    if (!q.trim()) return json({ error: "No query" }, 400);
+    const { searchDomains } = await import("../domains.js");
+    const results = searchDomains(q);
+    return json({ query: q, count: results.length, domains: results });
+  }
+
+  // GET /api/monitor/status — last monitoring report
+  if (path === "/api/monitor/status") {
+    try {
+      const { readFile } = await import("fs/promises");
+      const { existsSync } = await import("fs");
+      const reportPath = "output/monitor-report.json";
+      if (!existsSync(reportPath)) {
+        return json({ error: "No monitor report. Run: bun run monitor" }, 404);
+      }
+      const report = JSON.parse(await readFile(reportPath, "utf-8"));
+      return json(report);
+    } catch (err: any) {
+      return json({ error: `Failed to read monitor report: ${err.message}` }, 500);
     }
   }
 
@@ -199,3 +306,4 @@ function json(data: unknown, status = 200): Response {
     },
   });
 }
+

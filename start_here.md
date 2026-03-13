@@ -146,7 +146,8 @@ The web viewer's chat panel (💬 button) also connects to the RAG pipeline once
 | `bun run chat` | Interactive RAG chat |
 | `bun run query "..."` | Single RAG query |
 | `bun run status` | Check Ollama/ChromaDB/index status |
-| `bun test` | Run tests (85 tests, 9 files) |
+| `bun test` | Run tests (135 tests, 15 files) |
+| `bun run monitor` | Detect municipal code changes |
 
 ---
 
@@ -161,6 +162,7 @@ All optional — defaults work out of the box.
 | `CHAT_MODEL` | `gemma3:4b` | Chat model |
 | `CHROMA_URL` | `http://localhost:8000` | ChromaDB server |
 | `PORT` | `3000` | GUI server port |
+| `LOG_LEVEL` | `info` | Logger verbosity (debug/info/warn/error) |
 
 ---
 

@@ -3,6 +3,10 @@
  * Handles Playwright browser lifecycle and Cloudflare bypass.
  */
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
+import { SCRAPE_TIMEOUT_MS, CLOUDFLARE_WAIT_MS } from "./constants.js";
+import { createLogger } from "./logger.js";
+
+const log = createLogger("browser");
 
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -13,12 +17,14 @@ let context: BrowserContext | null = null;
 export async function launchBrowser(): Promise<BrowserContext> {
   if (context) return context;
 
+  log.info("Launching Chromium browser (non-headless)");
   browser = await chromium.launch({
     headless: false,
     args: ["--disable-blink-features=AutomationControlled"],
   });
 
   context = await browser.newContext({ userAgent: USER_AGENT });
+  log.info("Browser context created");
   return context;
 }
 
@@ -30,6 +36,7 @@ export async function closeBrowser(): Promise<void> {
   if (browser) {
     await browser.close();
     browser = null;
+    log.info("Browser closed");
   }
 }
 
@@ -42,7 +49,7 @@ export async function navigateWithCloudflare(
   url: string,
   opts: { timeout?: number } = {}
 ): Promise<void> {
-  const timeout = opts.timeout ?? 60_000;
+  const timeout = opts.timeout ?? SCRAPE_TIMEOUT_MS;
 
   await page.goto(url, { waitUntil: "domcontentloaded", timeout });
 
@@ -53,7 +60,7 @@ export async function navigateWithCloudflare(
   );
 
   // Give the SPA time to render content
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(CLOUDFLARE_WAIT_MS);
 }
 
 /**
@@ -69,3 +76,4 @@ export async function newPage(): Promise<Page> {
 
   return page;
 }
+
