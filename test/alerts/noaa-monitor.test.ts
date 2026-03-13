@@ -24,8 +24,21 @@ vi.mock('@xmldom/xmldom', () => {
         getElementsByTagNameNS: vi.fn()
       };
     })
-  };
-});
+import { describe, it, expect, beforeEach, vi } from 'bun:test';
+import { fetchNoaaAlerts, saveNoaaAlerts, monitorNoaaAlerts } from '../src/alerts/noaa-monitor.ts';
+import { createLogger } from '../src/logger.ts';
+
+// Mock the logger
+vi.mock('../src/logger.ts', () => ({
+  createLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn()
+  }))
+}));
+
+// Mock fetch
+global.fetch = vi.fn();
 
 describe('NOAA Monitor', () => {
   beforeEach(() => {
@@ -34,115 +47,7 @@ describe('NOAA Monitor', () => {
 
   describe('fetchNoaaAlerts', () => {
     it('should fetch and parse NOAA CAP alerts correctly', async () => {
-      const mockXML = `<?xml version="1.0" encoding="UTF-8"?>
-        <feed xmlns="http://www.w3.org/2005/Atom">
-          <entry>
-            <id>urn:oid:2.49.0.1.7.3.1.1</id>
-            <title>Tsunami Warning</title>
-            <updated>2026-03-13T12:00:00Z</updated>
-            <content>
-              <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
-                <identifier>test-alert-id</identifier>
-                <sender>test@example.com</sender>
-                <sent>2026-03-13T12:00:00Z</sent>
-                <status>Actual</status>
-                <msgType>Alert</msgType>
-                <event>Tsunami Warning</event>
-                <effective>2026-03-13T12:00:00Z</effective>
-                <expires>2026-03-13T18:00:00Z</expires>
-                <severity>Severe</severity>
-                <certainty>Likely</certainty>
-                <urgency>Immediate</urgency>
-                <areaDesc>Coastal Del Norte County; Coastal Humboldt County</areaDesc>
-                <description>A tsunami warning is in effect for the coastal areas.</description>
-                <instruction>Move to higher ground immediately.</instruction>
-                <polygon>41.8,-124.2 41.9,-124.1 41.8,-124.0</polygon>
-              </alert>
-            </content>
-          </entry>
-        </feed>`;
-
-      // Mock the DOMParser instance
-      const mockParseFromString = vi.fn();
-      const mockGetElementsByTagName = vi.fn();
-      const mockGetElementsByTagNameNS = vi.fn();
-
-      // We need to mock the DOMParser constructor and its methods
-      const mockDOMParser = vi.fn(() => ({
-        parseFromString: mockParseFromString,
-        getElementsByTagName: mockGetElementsByTagName,
-        getElementsByTagNameNS: mockGetElementsByTagNameNS
-      }));
-
-      // Temporarily replace the mock
-      vi.doMock('@xmldom/xmldom', () => ({
-        DOMParser: mockDOMParser
-      }));
-
-      // Now, we need to set up the mock return values
-      mockParseFromString.mockReturnValue({
-        getElementsByTagName: mockGetElementsByTagName,
-        getElementsByTagNameNS: mockGetElementsByTagNameNS,
-        documentElement: {
-          getElementsByTagName: mockGetElementsByTagName,
-          getElementsByTagNameNS: mockGetElementsByTagNameNS
-        }
-      });
-
-      // Mock the entry element
-      const mockEntry = {
-        getElementsByTagName: mockGetElementsByTagName,
-        getElementsByTagNameNS: mockGetElementsByTagNameNS
-      };
-
-      // Mock the id, title, updated elements
-      const mockIdElement = { textContent: 'urn:oid:2.49.0.1.7.3.1.1' };
-      const mockTitleElement = { textContent: 'Tsunami Warning' };
-      const mockUpdatedElement = { textContent: '2026-03-13T12:00:00Z' };
-
-      // Mock the content element
-      const mockContentElement = {
-        getElementsByTagName: mockGetElementsByTagName,
-        getElementsByTagNameNS: mockGetElementsByTagNameNS
-      };
-
-      // Mock the alert element
-      const mockAlertElement = {
-        getElementsByTagName: mockGetElementsByTagName,
-        getElementsByTagNameNS: mockGetElementsByTagNameNS
-      };
-
-      // Set up the mock return values for the entry
-      mockGetElementsByTagName.mockImplementation((tagName) => {
-        if (tagName === 'id') return [mockIdElement];
-        if (tagName === 'title') return [mockTitleElement];
-        if (tagName === 'updated') return [mockUpdatedElement];
-        if (tagName === 'content') return [mockContentElement];
-        return [];
-      });
-
-      // Set up the mock return values for the content
-      mockContentElement.getElementsByTagNameNS.mockReturnValue([mockAlertElement]);
-
-      // Set up the mock return values for the alert element
-      mockAlertElement.getElementsByTagNameNS.mockImplementation((ns, tagName) => {
-        const elements: any = {};
-        elements.identifier = [{ textContent: 'test-alert-id' }];
-        elements.sender = [{ textContent: 'test@example.com' }];
-        elements.status = [{ textContent: 'Actual' }];
-        elements.msgType = [{ textContent: 'Alert' }];
-        elements.event = [{ textContent: 'Tsunami Warning' }];
-        elements.effective = [{ textContent: '2026-03-13T12:00:00Z' }];
-        elements.expires = [{ textContent: '2026-03-13T18:00:00Z' }];
-        elements.severity = [{ textContent: 'Severe' }];
-        elements.certainty = [{ textContent: 'Likely' }];
-        elements.urgency = [{ textContent: 'Immediate' }];
-        elements.areaDesc = [{ textContent: 'Coastal Del Norte County; Coastal Humboldt County' }];
-        elements.description = [{ textContent: 'A tsunami warning is in effect for the coastal areas.' }];
-        elements.instruction = [{ textContent: 'Move to higher ground immediately.' }];
-        elements.polygon = [{ textContent: '41.8,-124.2 41.9,-124.1 41.8,-124.0' }];
-        return elements[tagName] || [];
-      });
+      const mockXML = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n        <feed xmlns=\"http://www.w3.org/2005/Atom\">\n          <entry>\n            <id>urn:oid:2.49.0.1.7.3.1.1</id>\n            <title>Tsunami Warning</title>\n            <updated>2026-03-13T12:00:00Z</updated>\n            <content>\n              <alert xmlns=\"urn:oasis:names:tc:emergency:cap:1.2\">\n                <identifier>test-alert-id</identifier>\n                <sender>test@example.com</sender>\n                <sent>2026-03-13T12:00:00Z</sent>\n                <status>Actual</status>\n                <msgType>Alert</msgType>\n                <event>Tsunami Warning</event>\n                <effective>2026-03-13T12:00:00Z</effective>\n                <expires>2026-03-13T18:00:00Z</expires>\n                <severity>Severe</severity>\n                <certainty>Likely</certainty>\n                <urgency>Immediate</urgency>\n                <areaDesc>Coastal Del Norte County; Coastal Humboldt County</areaDesc>\n                <description>A tsunami warning is in effect for the coastal areas.</description>\n                <instruction>Move to higher ground immediately.</instruction>\n                <polygon>41.8,-124.2 41.9,-124.1 41.8,-124.0</polygon>\n              </alert>\n            </content>\n          </entry>\n        </feed>`;
 
       // Mock the fetch
       fetch.mockResolvedValueOnce({
@@ -150,13 +55,9 @@ describe('NOAA Monitor', () => {
         text: () => Promise.resolve(mockXML)
       });
 
-      // Re-import the module to get the mocked DOMParser
-      vi.resetModules();
-      const { fetchNoaaAlerts } = await import('../src/alerts/noaa-monitor.ts');
+      const result = await fetchNoaaAlerts();
 
-      const result = await fetchNoaaAlerts('http://example.com/feed', 'Test Source');
-
-      expect(fetch).toHaveBeenCalledWith('http://example.com/feed');
+      expect(fetch).toHaveBeenCalledWith('https://alerts.weather.gov/cap/wwaatmget.php?x=CA123');
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         id: 'urn:oid:2.49.0.1.7.3.1.1',
@@ -181,13 +82,9 @@ describe('NOAA Monitor', () => {
         statusText: 'Not Found'
       });
 
-      // Re-import the module to get the fresh mocks
-      vi.resetModules();
-      const { fetchNoaaAlerts } = await import('../src/alerts/noaa-monitor.ts');
+      const result = await fetchNoaaAlerts();
 
-      const result = await fetchNoaaAlerts('http://example.com/feed', 'Test Source');
-
-      expect(fetch).toHaveBeenCalledWith('http://example.com/feed');
+      expect(fetch).toHaveBeenCalledWith('https://alerts.weather.gov/cap/wwaatmget.php?x=CA123');
       expect(result).toHaveLength(0);
     });
   });
@@ -222,10 +119,6 @@ describe('NOAA Monitor', () => {
         }
       ];
 
-      // Re-import the module to get the fresh mocks
-      vi.resetModules();
-      const { saveNoaaAlerts } = await import('../src/alerts/noaa-monitor.ts');
-
       await saveNoaaAlerts(alerts);
 
       expect(fsMock.mkdir).toHaveBeenCalledWith(expect.anything(), { recursive: true });
@@ -236,8 +129,6 @@ describe('NOAA Monitor', () => {
   describe('monitorNoaaAlerts', () => {
     it('should run the monitoring process', async () => {
       // Mock fetchNoaaAlerts to return some alerts
-      vi.resetModules();
-      const { fetchNoaaAlerts } = await import('../src/alerts/noaa-monitor.ts');
       vi.spyOn(require('../src/alerts/noaa-monitor.ts'), 'fetchNoaaAlerts').mockResolvedValue([
         {
           id: 'test-alert',
@@ -254,10 +145,6 @@ describe('NOAA Monitor', () => {
           polygon: '41.8,-124.2'
         }
       ]);
-
-      // Re-import the module to get the fresh mocks and the monitor function
-      vi.resetModules();
-      const { monitorNoaaAlerts } = await import('../src/alerts/noaa-monitor.ts');
 
       await monitorNoaaAlerts();
 

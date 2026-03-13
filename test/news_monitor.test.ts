@@ -14,6 +14,19 @@ vi.mock('../src/logger.ts', () => ({
 // Mock fetch
 global.fetch = vi.fn();
 
+// Mock DOMParser
+vi.mock('@xmldom/xmldom', () => {
+  return {
+    DOMParser: vi.fn().mockImplementation(() => {
+      return {
+        parseFromString: vi.fn(),
+        getElementsByTagName: vi.fn(),
+        getElementsByTagNameNS: vi.fn()
+      };
+    })
+  };
+});
+
 describe('News Monitor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,16 +81,16 @@ describe('News Monitor', () => {
         <rss version="2.0">
           <channel>
             <item>
-              <title>Test News Title 1</title>
+              <title>Crescent City Test News 1</title>
               <link>http://example.com/test1</link>
               <pubDate>Mon, 13 Mar 2026 12:00:00 GMT</pubDate>
-              <description>Description 1</description>
+              <description>This is a test description about Crescent City.</description>
             </item>
             <item>
-              <title>Test News Title 2</title>
+              <title>Crescent City Test News 2</title>
               <link>http://example.com/test1</link>
               <pubDate>Tue, 14 Mar 2026 12:00:00 GMT</pubDate>
-              <description>Description 2</description>
+              <description>Another test description about Crescent City.</description>
             </item>
           </channel>
         </rss>`;
@@ -90,7 +103,7 @@ describe('News Monitor', () => {
       const result = await fetchRSSFeed('http://example.com/feed', 'Test Source');
 
       expect(result).toHaveLength(1);
-      expect(result[0].title).toBe('Test News Title 1');
+      expect(result[0].title).toBe('Crescent City Test News 1');
     });
 
     it('should filter items by Crescent City keywords', async () => {

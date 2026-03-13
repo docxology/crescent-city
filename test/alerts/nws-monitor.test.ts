@@ -98,7 +98,11 @@ describe('NWS Monitor', () => {
 
       const result = await fetchNwsAlerts();
 
-      expect(fetch).toHaveBeenCalledWith('https://api.weather.gov/alerts/active?zone=CAZ006&status=actual&message_type=alert');
+      expect(fetch).toHaveBeenCalledWith('https://api.weather.gov/alerts/active?zone=CAZ006&status=actual&message_type=alert', {
+        headers: {
+          'User-Agent': 'CrescentCityIntelligenceSystem/1.0 (https://github.com/docxology/crescent-city)'
+        }
+      });
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
         id: 'https://api.weather.gov/alerts/test1',
@@ -161,7 +165,11 @@ describe('NWS Monitor', () => {
 
       const result = await fetchNwsAlerts();
 
-      expect(fetch).toHaveBeenCalledWith('https://api.weather.gov/alerts/active?zone=CAZ006&status=actual&message_type=alert');
+      expect(fetch).toHaveBeenCalledWith('https://api.weather.gov/alerts/active?zone=CAZ006&status=actual&message_type=alert', {
+        headers: {
+          'User-Agent': 'CrescentCityIntelligenceSystem/1.0 (https://github.com/docxology/crescent-city)'
+        }
+      });
       expect(result).toHaveLength(0);
     });
   });

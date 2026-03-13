@@ -3,7 +3,7 @@
  * News monitoring automation for Crescent City.
  * Fetches RSS feeds from Times-Standard, Lost Coast Outpost, and Humboldt Times.
  * Uses proper XML parsing for reliability.
- * Last run: 2026-03-13T14:48:42.221Z
+ * Last run: 2026-03-13T13:53:51.524Z
  */
 import { createLogger } from './logger.js';
 import { computeSha256, htmlToText } from './utils.js';
@@ -13,10 +13,9 @@ const logger = createLogger('news_monitor');
 
 // RSS feed URLs for local news sources
 const NEWS_FEEDS = {
-  'Times-Standard': 'https://www.times-standard.com/feed/',
-  'North Coast Journal': 'https://www.northcoastjournal.com/feed/',
+  'Times-Standard': 'https://www.times-standard.com/news/rss.xml',
   'Lost Coast Outpost': 'https://lostcoastoutpost.com/feed',
-  'KMUD Radio': 'https://kmud.org/feed/'
+  'Humboldt Times': 'https://www.humboldtcountynews.com/feed' // Placeholder - replace with actual RSS URL
 };
 
 // Keywords for filtering relevant Crescent City news
