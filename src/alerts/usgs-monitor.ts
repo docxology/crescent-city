@@ -48,7 +48,7 @@ export async function fetchUsgsEarthquakes(): Promise<Array<{
   mmi: number | null;
   alert: string | null;
   status: string;
-  tsunami: number; // 0 = no tsunami, 1 = tsunami possible, 2 = tsunami generated
+  tsunami: number;
   sig: number;
   net: string;
   code: string;
@@ -163,7 +163,7 @@ export async function fetchUsgsEarthquakes(): Promise<Array<{
           title: props.title,
           longitude,
           latitude,
-          depth: Math.abs(depth), // Ensure depth is positive
+          depth: Math.abs(depth),
           distanceKm
         });
       }
