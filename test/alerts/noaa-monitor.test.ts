@@ -14,32 +14,6 @@ vi.mock('../src/logger.ts', () => ({
 // Mock fetch
 global.fetch = vi.fn();
 
-// Mock DOMParser
-vi.mock('@xmldom/xmldom', () => {
-  return {
-    DOMParser: vi.fn().mockImplementation(() => {
-      return {
-        parseFromString: vi.fn(),
-        getElementsByTagName: vi.fn(),
-        getElementsByTagNameNS: vi.fn()
-      };
-    })
-import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { fetchNoaaAlerts, saveNoaaAlerts, monitorNoaaAlerts } from '../src/alerts/noaa-monitor.ts';
-import { createLogger } from '../src/logger.ts';
-
-// Mock the logger
-vi.mock('../src/logger.ts', () => ({
-  createLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn()
-  }))
-}));
-
-// Mock fetch
-global.fetch = vi.fn();
-
 describe('NOAA Monitor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,7 +21,33 @@ describe('NOAA Monitor', () => {
 
   describe('fetchNoaaAlerts', () => {
     it('should fetch and parse NOAA CAP alerts correctly', async () => {
-      const mockXML = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n        <feed xmlns=\"http://www.w3.org/2005/Atom\">\n          <entry>\n            <id>urn:oid:2.49.0.1.7.3.1.1</id>\n            <title>Tsunami Warning</title>\n            <updated>2026-03-13T12:00:00Z</updated>\n            <content>\n              <alert xmlns=\"urn:oasis:names:tc:emergency:cap:1.2\">\n                <identifier>test-alert-id</identifier>\n                <sender>test@example.com</sender>\n                <sent>2026-03-13T12:00:00Z</sent>\n                <status>Actual</status>\n                <msgType>Alert</msgType>\n                <event>Tsunami Warning</event>\n                <effective>2026-03-13T12:00:00Z</effective>\n                <expires>2026-03-13T18:00:00Z</expires>\n                <severity>Severe</severity>\n                <certainty>Likely</certainty>\n                <urgency>Immediate</urgency>\n                <areaDesc>Coastal Del Norte County; Coastal Humboldt County</areaDesc>\n                <description>A tsunami warning is in effect for the coastal areas.</description>\n                <instruction>Move to higher ground immediately.</instruction>\n                <polygon>41.8,-124.2 41.9,-124.1 41.8,-124.0</polygon>\n              </alert>\n            </content>\n          </entry>\n        </feed>`;
+      const mockXML = `<?xml version="1.0" encoding="UTF-8"?>
+        <feed xmlns="http://www.w3.org/2005/Atom">
+          <entry>
+            <id>urn:oid:2.49.0.1.7.3.1.1</id>
+            <title>Tsunami Warning</title>
+            <updated>2026-03-13T12:00:00Z</updated>
+            <content>
+              <alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+                <identifier>test-alert-id</identifier>
+                <sender>test@example.com</sender>
+                <sent>2026-03-13T12:00:00Z</sent>
+                <status>Actual</status>
+                <msgType>Alert</msgType>
+                <event>Tsunami Warning</event>
+                <effective>2026-03-13T12:00:00Z</effective>
+                <expires>2026-03-13T18:00:00Z</expires>
+                <severity>Severe</severity>
+                <certainty>Likely</certainty>
+                <urgency>Immediate</urgency>
+                <areaDesc>Coastal Del Norte County; Coastal Humboldt County</areaDesc>
+                <description>A tsunami warning is in effect for the coastal areas.</description>
+                <instruction>Move to higher ground immediately.</instruction>
+                <polygon>41.8,-124.2 41.9,-124.1 41.8,-124.0</polygon>
+              </alert>
+            </content>
+          </entry>
+        </feed>`;
 
       // Mock the fetch
       fetch.mockResolvedValueOnce({
