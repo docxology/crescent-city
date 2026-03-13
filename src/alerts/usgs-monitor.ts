@@ -66,7 +66,7 @@ export async function fetchUsgsEarthquakes(): Promise<Array<{
   latitude: number;
   depth: number;
   distanceKm: number;
-}> {
+}>> {
   try {
     logger.info('Fetching USGS earthquake data', { url: USGS_EARTHQUAKE_FEED });
     
