@@ -247,7 +247,6 @@ async function fetchGovMeetings(url: string, sourceName: string): Promise<Array<
     logger.info(`Fetching government meetings from ${{sourceName}}`, {{ url }});
     }
 }
-            ''')
     
     const response = await fetch(url);
     if (!response.ok) {{
@@ -371,6 +370,7 @@ async function monitorGovMeetings(): Promise<void> {{
   });
 }
 
+            ''')
 // Run the monitoring if this script is executed directly
 if (import.meta.main) {
   monitorGovMeetings().catch(error => {
