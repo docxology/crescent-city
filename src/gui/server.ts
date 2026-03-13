@@ -3,6 +3,7 @@
 import { handleApiRoute } from "./routes.js";
 import { initSearch } from "./search.js";
 import { createLogger } from "../logger.js";
+import { applyMiddleware } from "../api/middleware.js";
 
 const log = createLogger("gui");
 
@@ -16,6 +17,12 @@ const server = Bun.serve({
   port: PORT,
   async fetch(req) {
     const url = new URL(req.url);
+
+    // Apply middleware
+    const middlewareResponse = await applyMiddleware(req);
+    if (middlewareResponse !== null) {
+      return middlewareResponse;
+    }
 
     // API routes
     if (url.pathname.startsWith("/api/")) {

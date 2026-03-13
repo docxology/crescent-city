@@ -1,0 +1,735 @@
+openapi: 3.0.3
+info:
+  title: Crescent City Municipal Code API
+  description: REST API for accessing Crescent City, CA municipal code and intelligence system
+  version: 1.0.0
+  contact:
+    name: Crescent City Intelligence System
+    url: https://github.com/docxology/crescent-city
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://api.crescentcity.ca.gov
+    description: Production server
+paths:
+  /api/toc:
+    get:
+      summary: Get table of contents for municipal code
+      description: Returns the hierarchical table of contents for the municipal code
+      operationId: getTableOfContents
+      tags:
+        - Municipal Code
+      responses:
+        '200':
+          description: Successful retrieval of table of contents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  municipality:
+                    type: string
+                    example: "Crescent City"
+                  lastUpdated:
+                    type: string
+                    format: date-time
+                    example: "2026-03-13T10:30:00Z"
+                  toc:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        guid:
+                          type: string
+                        children:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/TocItem'
+        '404':
+          description: Table of contents not found - scraper needs to be run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/article/{guid}:
+    get:
+      summary: Get a specific article by GUID
+      description: Returns the full text and metadata for a municipal code article
+      operationId: getArticleByGuid
+      tags:
+        - Municipal Code
+      parameters:
+        - in: path
+          name: guid
+          required: true
+          schema:
+            type: string
+          description: The GUID of the article to retrieve
+      responses:
+        '200':
+          description: Successful retrieval of article
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleResponse'
+        '404':
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/section/{guid}:
+    get:
+      summary: Get a specific section by GUID
+      description: Returns the full text and metadata for a municipal code section
+      operationId: getSectionByGuid
+      tags:
+        - Municipal Code
+      parameters:
+        - in: path
+          name: guid
+          required: true
+          schema:
+            type: string
+          description: The GUID of the section to retrieve
+      responses:
+        '200':
+          description: Successful retrieval of section
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SectionResponse'
+        '404':
+          description: Section not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/search:
+    get:
+      summary: Search municipal code
+      description: Search for sections or articles matching a query string
+      operationId: searchMunicipalCode
+      tags:
+        - Search
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+          description: Search query string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Maximum number of results to return
+      responses:
+        '200':
+          description: Successful search
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  count:
+                    type: integer
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchResult'
+        '400':
+          description: Bad request - missing query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/stats:
+    get:
+      summary: Get municipal code statistics
+      description: Returns statistics about the municipal code database
+      operationId: getMunicipalCodeStats
+      tags:
+        - Statistics
+      responses:
+        '200':
+          description: Successful retrieval of statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+        '404':
+          description: Manifest not found - scraper needs to be run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/chat:
+    get:
+      summary: Query the municipal code using RAG
+      description: Ask a question about the municipal code and get an AI-generated answer with sources
+      operationId: chatWithMunicipalCode
+      tags:
+        - AI / RAG
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+          description: Question to ask about the municipal code
+      responses:
+        '200':
+          description: Successful chat response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          description: Bad request - missing question parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable - LLM or database not running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/analytics/stats:
+    get:
+      summary: Get municipal code analytics statistics
+      description: Returns detailed analytics about the municipal code content
+      operationId: getAnalyticsStats
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Successful retrieval of analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsStatsResponse'
+        '503':
+          description: Service unavailable - analytics modules not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/analytics/embeddings:
+    get:
+      summary: Get embedding projections for visualization
+      description: Returns PCA projection of municipal code embeddings for visualization
+      operationId: getEmbeddingProjection
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: Successful retrieval of embedding projection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingProjectionResponse'
+        '503':
+          description: Service unavailable - analytics modules not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/summarize:
+    post:
+      summary: Summarize municipal code text
+      description: Generate a comprehensive summary of provided municipal code text
+      operationId: summarizeMunicipalCode
+      tags:
+        - AI / Summarization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  description: The municipal code text to summarize
+                number:
+                  type: string
+                  description: Section number (e.g., "8.04.010")
+                title:
+                  type: string
+                  description: Section title
+      responses:
+        '200':
+          description: Successful summarization
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: string
+                  model:
+                    type: string
+                    example: "hunter-alpha"
+        '400':
+          description: Bad request - missing text parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable - LLM modules not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/domains:
+    get:
+      summary: Get all intelligence domains
+      description: Returns a list of all intelligence domains with summary information
+      operationId: getIntelligenceDomains
+      tags:
+        - Intelligence Domains
+      responses:
+        '200':
+          description: Successful retrieval of domains
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domains:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DomainSummary'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/domain/{id}:
+    get:
+      summary: Get a specific intelligence domain
+      description: Returns detailed information about a specific intelligence domain
+      operationId: getIntelligenceDomainById
+      tags:
+        - Intelligence Domains
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: The ID of the domain to retrieve
+      responses:
+        '200':
+          description: Successful retrieval of domain
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainDetail'
+        '404':
+          description: Domain not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/domains/search:
+    get:
+      summary: Search intelligence domains
+      description: Search across intelligence domains by query string
+      operationId: searchIntelligenceDomains
+      tags:
+        - Intelligence Domains
+        - Search
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema:
+            type: string
+          description: Search query string
+      responses:
+        '200':
+          description: Successful search
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  count:
+                    type: integer
+                  domains:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DomainSummary'
+        '400':
+          description: Bad request - missing query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/monitor/status:
+    get:
+      summary: Get last monitoring report
+      description: Returns the status of the last municipal code monitoring run
+      operationId: getMonitorStatus
+      tags:
+        - Monitoring
+      responses:
+        '200':
+          description: Successful retrieval of monitor status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonitorStatusResponse'
+        '404':
+          description: No monitor report found - monitor needs to be run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    TocItem:
+      type: object
+      properties:
+        title:
+          type: string
+        guid:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/TocItem'
+    ArticleResponse:
+      type: object
+      properties:
+        guid:
+          type: string
+        title:
+          type: string
+        articleNumber:
+          type: string
+        scrapedAt:
+          type: string
+          format: date-time
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/SectionResponse'
+    SectionResponse:
+      type: object
+      properties:
+        guid:
+          type: string
+        title:
+          type: string
+        sectionNumber:
+          type: string
+        content:
+          type: string
+        htmlContent:
+          type: string
+        wordCount:
+          type: integer
+        scrapedAt:
+          type: string
+          format: date-time
+    SearchResult:
+      type: object
+      properties:
+        guid:
+          type: string
+        title:
+          type: string
+        sectionNumber:
+          type: string
+        snippet:
+          type: string
+        score:
+          type: number
+          format: float
+    StatsResponse:
+      type: object
+      properties:
+        municipality:
+          type: string
+        articleCount:
+          type: integer
+        sectionCount:
+          type: integer
+        tocNodeCount:
+          type: integer
+        indexedSections:
+          type: integer
+        scrapedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+    ChatResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            type: object
+            properties:
+              sectionNumber:
+                type: string
+              title:
+                type: string
+              content:
+                type: string
+        model:
+          type: string
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+    DomainSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        topicCount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date
+    DomainDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        topics:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              sources:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    sectionNumber:
+                      type: string
+                    relevance:
+                      type: string
+              externalRefs:
+                type: array
+                items:
+                  type: string
+              tags:
+                type: array
+                items:
+                  type: string
+        updatedAt:
+          type: string
+          format: date
+    EmbeddingProjectionResponse:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+        labels:
+          type: array
+          items:
+            type: string
+        method:
+          type: string
+          example: "PCA"
+        dimensions:
+          type: integer
+          example: 2
+    AnalyticsStatsResponse:
+      type: object
+      properties:
+        totalSections:
+          type: integer
+        totalWords:
+          type: integer
+        averageWordsPerSection:
+          type: number
+          format: float
+        longestSection:
+          type: object
+          properties:
+            sectionNumber:
+              type: string
+            title:
+              type: string
+            wordCount:
+              type: integer
+        shortestSection:
+          type: object
+          properties:
+            sectionNumber:
+              type: string
+            title:
+              type: string
+            wordCount:
+              type: integer
+        mostCommonWords:
+          type: array
+          items:
+            type: object
+            properties:
+              word:
+                type: string
+              count:
+                type: integer
+    MonitorStatusResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        articlesChecked:
+          type: integer
+        hashMismatches:
+          type: array
+          items:
+            type: string
+        missingSections:
+          type: array
+          items:
+            type: string
+        newSections:
+          type: array
+          items:
+            type: string
+        overallStatus:
+          type: string
+          enum: ["clean", "changed", "error"]
+        summary:
+          type: string
+security:
+  - apiKey: []
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for accessing protected endpoints
+    # Alternative API key in query parameter
+    apiKeyQuery:
+      type: apiKey
+      in: query
+      name: api_key
+      description: API key for accessing protected endpoints (query parameter variant)

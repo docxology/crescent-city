@@ -1,0 +1,250 @@
+#!/usr/bin/env bun
+/**
+ * NOAA Tsunami Warning Integration for Crescent City.
+ * Subscribes to NOAA CAP alerts for tsunami warnings, parses alert severity,
+ * affected areas, and timing, triggers automated notifications, and logs alerts.
+ */
+import { createLogger } from '../logger.js';
+import { computeSha256 } from '../utils.js';
+
+const logger = createLogger('noaa_tsunami_alert');
+
+// NOAA CAP feed for tsunami warnings (Pacific Coast/Alaska region)
+const NOAA_TSUNAMI_CAP_URL = 'https://api.weather.gov/alerts/active?event=Tsunami Warning&region=CA';
+
+// Cache to prevent duplicate processing of the same alert
+const processedAlerts = new Set<string>();
+
+/**
+ * Interface for NOAA CAP alert properties
+ */
+interface NOAAAlertProperties {
+  id: string;
+  areaDesc: string;
+  event: string;
+  severity: string;
+  certainty: string;
+  urgency: string;
+  effective: string;
+  expires: string;
+  sender: string;
+  headline: string;
+  description: string;
+  instruction: string;
+  status: string;
+  msgType: string;
+  category: string;
+}
+
+/**
+ * Interface for NOAA CAP alert feature
+ */
+interface NOAAAlertFeature {
+  type: string;
+  properties: NOAAAlertProperties;
+  geometry: {
+    type: string;
+    coordinates: number[][][];
+  } | null;
+}
+
+/**
+ * Interface for NOAA CAP alert response
+ */
+interface NOAAAlertResponse {
+  type: string;
+  features: NOAAAlertFeature[];
+}
+
+/**
+ * Fetch and parse NOAA CAP alerts for tsunami warnings
+ */
+async function fetchNOAATsunamiAlerts(): Promise<Array<{
+  id: string;
+  areaDesc: string;
+  event: string;
+  severity: string;
+  certainty: string;
+  urgency: string;
+  effective: string;
+  expires: string;
+  sender: string;
+  headline: string;
+  description: string;
+  instruction: string;
+  status: string;
+  msgType: string;
+  category: string;
+  geometry: {
+    type: string;
+    coordinates: number[][][];
+  } | null;
+}>> {
+  try {
+    logger.info('Fetching NOAA tsunami CAP alerts', { url: NOAA_TSUNAMI_CAP_URL });
+    
+    const response = await fetch(NOAA_TSUNAMI_CAP_URL, {
+      headers: {
+        'User-Agent': 'CrescentCityIntelligenceSystem/1.0 (https://github.com/docxology/crescent-city)'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const data: NOAAAlertResponse = await response.json();
+    
+    // Filter for active alerts and extract relevant information
+    const alerts = data.features
+      .filter(feature => 
+        feature.properties.status === 'Actual' && 
+        feature.properties.msgType === 'Alert'
+      )
+      .map(feature => ({
+        id: feature.properties.id,
+        areaDesc: feature.properties.areaDesc,
+        event: feature.properties.event,
+        severity: feature.properties.severity,
+        certainty: feature.properties.certainty,
+        urgency: feature.properties.urgency,
+        effective: feature.properties.effective,
+        expires: feature.properties.expires,
+        sender: feature.properties.sender,
+        headline: feature.properties.headline,
+        description: feature.properties.description,
+        instruction: feature.properties.instruction,
+        status: feature.properties.status,
+        msgType: feature.properties.msgType,
+        category: feature.properties.category,
+        geometry: feature.geometry
+      }));
+    
+    logger.info(`Found ${alerts.length} active NOAA tsunami alerts`, { count: alerts.length });
+    return alerts;
+    
+  } catch (error) {
+    logger.error('Failed to fetch NOAA tsunami CAP alerts', { error: error.message });
+    return [];
+  }
+}
+
+/**
+ * Check if an alert affects Crescent City area
+ */
+function isCrescentCityRelevant(alert: {
+  areaDesc: string;
+  description: string;
+}): boolean {
+  const crescentCityKeywords = [
+    'crescent city',
+    'del norte',
+    'california coast',
+    'northern california',
+    'pacific coast',
+    'ca',
+    'california'
+  ];
+  
+  const areaDescLower = alert.areaDesc.toLowerCase();
+  const descriptionLower = alert.description.toLowerCase();
+  
+  return crescentCityKeywords.some(keyword => 
+    areaDescLower.includes(keyword) || descriptionLower.includes(keyword)
+  );
+}
+
+/**
+ * Save alert to file for historical tracking
+ */
+async function saveAlertToFile(alert: any): Promise<void> {
+  const fs = await import('fs/promises');
+  const path = await import('path');
+  
+  const dataDir = path.join(process.cwd(), 'output', 'alerts', 'tsunami');
+  try {
+    await fs.mkdir(dataDir, { recursive: true });
+  } catch (e) {
+    // Directory might already exist
+  }
+  
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const alertIdSafe = alert.id.replace(/[^\w\-]/g, '_');
+  const filename = path.join(dataDir, `alert-${alertIdSafe}-${timestamp}.json`);
+  
+  const alertData = {
+    fetchedAt: new Date().toISOString(),
+    alert: alert
+  };
+  
+  await fs.writeFile(filename, JSON.stringify(alertData, null, 2));
+  logger.info(`Saved tsunami alert to ${filename}`);
+}
+
+/**
+ * Main NOAA tsunami alert monitoring function
+ */
+async function monitorNOAATsunamiAlerts(): Promise<void> {
+  logger.info('=== Starting NOAA Tsunami Alert Monitoring ===');
+  
+  const alerts = await fetchNOAATsunamiAlerts();
+  
+  let newAlertsCount = 0;
+  
+  for (const alert of alerts) {
+    // Skip if we've already processed this alert
+    if (processedAlerts.has(alert.id)) {
+      continue;
+    }
+    
+    // Check if alert is relevant to Crescent City
+    if (!isCrescentCityRelevant(alert)) {
+      logger.info(`Skipping non-relevant tsunami alert: ${alert.headline}`, {
+        area: alert.areaDesc,
+        severity: alert.severity
+      });
+      processedAlerts.add(alert.id); // Still mark as processed to avoid re-checking
+      continue;
+    }
+    
+    // Mark as processed
+    processedAlerts.add(alert.id);
+    newAlertsCount++;
+    
+    logger.warning('NEW TSUNAMI ALERT FOR CRESCENT CITY DETECTED!', {
+      id: alert.id,
+      headline: alert.headline,
+      severity: alert.severity,
+      certainty: alert.certainty,
+      urgency: alert.urgency,
+      effective: alert.effective,
+      expires: alert.expires,
+      area: alert.areaDesc
+    });
+    
+    // Save alert to file
+    await saveAlertToFile(alert);
+    
+    // TODO: Trigger automated notifications via existing monitoring channels
+    // This could include sending to news_monitor output, triggering alerts in the RAG system, etc.
+    logger.info('Would trigger automated notifications (email, SMS, dashboard update, etc.)', {
+      alertId: alert.id
+    });
+  }
+  
+  if (newAlertsCount === 0) {
+    logger.info('No new relevant NOAA tsunami alerts found');
+  } else {
+    logger.info(`Processed ${newAlertsCount} new relevant NOAA tsunami alerts`);
+  }
+  
+  logger.info('=== NOAA Tsunami Alert Monitoring Complete ===');
+}
+
+// Run the monitoring if this script is executed directly
+if (import.meta.main) {
+  monitorNOAATsunamiAlerts().catch(error => {
+    logger.error('NOAA tsunami alert monitoring failed', { error: error.message });
+    process.exit(1);
+  });
+}

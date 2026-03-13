@@ -294,6 +294,27 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
     }
   }
 
+  // GET /api/openapi.yaml — OpenAPI specification
+  if (path === "/api/openapi.yaml") {
+    try {
+      const { readFile } = await import("fs/promises");
+      const { existsSync } = await import("fs");
+      const specPath = "../openapi.yaml";
+      if (!existsSync(specPath)) {
+        return json({ error: "OpenAPI specification not found" }, 404);
+      }
+      const spec = await readFile(specPath, "utf-8");
+      return new Response(spec, {
+        headers: {
+          "Content-Type": "application/yaml",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    } catch (err: any) {
+      return json({ error: `Failed to read OpenAPI specification: ${err.message}` }, 500);
+    }
+  }
+
   return json({ error: "Not found" }, 404);
 }
 
