@@ -1,7 +1,11 @@
 === Crescent City Intelligence System - 6 Hour Summary ===
-Generated at: 2026-03-13 14:57:49
+Generated at: 2026-03-13 15:46:59
 
-Recent commits (36):
+Recent commits (30):
+  • 86c99ee Work iteration: 2026-03-13 15:46:03 - Progress on intelligence system (NewTester)
+  • 37f5c2e Work iteration: 2026-03-13 15:45:07 - Progress on intelligence system (NewTester)
+  • ff0a0aa chore: continuous modular improvement (NewTester)
+  • 3bb9d98 Work iteration: 2026-03-13 14:58:16 - Progress on intelligence system (NewTester)
   • 678cb22 Work iteration: 2026-03-13 14:54:41 - Progress on intelligence system (NewTester)
   • 2e7e27d Work iteration: 2026-03-13 14:51:44 - Progress on intelligence system (NewTester)
   • a9b0d4f Work iteration: 2026-03-13 14:49:59 - Progress on intelligence system (NewTester)
@@ -28,26 +32,18 @@ Recent commits (36):
   • fde7f75 Work iteration: 2026-03-13 10:57:37 - Progress on intelligence system (NewTester)
   • 76d6046 Update TODO: clear completed tasks, scope upcoming work on real-time alerts, API enhancements, and monitoring expansion (NewTester)
   • 9958891 Work iteration: 2026-03-13 10:20:07 - Progress on intelligence system (NewTester)
-  • 7651052 Work iteration: 2026-03-13 09:40:03 - Progress on intelligence system (NewTester)
-  • efe38a1 Add government meeting tracking script and update TODO to reflect active monitoring systems (NewTester)
-  • 043290a Work iteration: 2026-03-13 09:36:05 - Progress on intelligence system (NewTester)
-  • 29e204e Update TODO: mark news monitoring as completed, update current status and next actions (NewTester)
-  • 50c9813 Work iteration: 2026-03-13 09:23:38 - Progress on intelligence system (NewTester)
-  • 6ace468 Work iteration: 2026-03-13 09:20:50 - Progress on intelligence system (NewTester)
-  • b95ea8d Work iteration: 2026-03-13 09:16:20 - Progress on intelligence system (NewTester)
-  • 241c6b9 Work iteration: 2026-03-13 09:14:41 - Progress on intelligence system (NewTester)
-  • d27fa76 Work iteration: 2026-03-13 09:12:11 - Progress on intelligence system (NewTester)
-  • 9afc453 Work iteration: 2026-03-13 09:02:13 - Progress on intelligence system (NewTester)
 
-Changed files (7):
-  TypeScript files: src/news_monitor.ts, test/alerts/noaa-monitor.test.ts, test/alerts/nws-monitor.test.ts, test/news_monitor.test.ts
-  Other: src/api/middleware.ts.backup, src/news_monitor.ts.backup2, src/news_monitor.ts.backup3
+Changed files (6):
+  TypeScript files: src/api/middleware.ts, src/gov_meeting_monitor.ts, src/news_monitor.ts, test/news_monitor.test.ts
+  Documentation: summary_output.txt
+  Other: src/news_monitor.ts.backup
 
 
 System Status:
   ✅ ChromaDB running on port 8001 (v2 API)
   ✅ Ollama running with required models
   ✅ News monitoring script exists
+  ✅ Gov meeting monitoring script exists
   📋 TODO progress: 3/13 items completed
 
 === End Summary ===
