@@ -11,9 +11,9 @@ const logger = createLogger('gov_meeting_monitor');
 
 // Government meeting sources
 const GOV_SOURCES = {
-  'City Council': 'https://crescentcity.org/government/city-council/agendas',
-  'Planning Commission': 'https://crescentcity.org/government/planning-commission/agendas',
-  'Harbor Commission': 'https://crescentcity.org/government/harbor-commission/agendas'
+  'City Council': 'https://crescentcity.org/government/city-council/meetings/agendas/',
+  'Planning Commission': 'https://crescentcity.org/government/planning-commission/meetings/agendas/',
+  'Harbor Commission': 'https://crescentcity.org/government/harbor-commission/meetings/agendas/'
 };
 
 // Keywords for filtering relevant meeting items
