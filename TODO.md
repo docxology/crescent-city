@@ -19,15 +19,15 @@
   - ✅ `gemma3:4b` (chat model) — available
 
 ## Phase 2: Activate RAG System (Requires scraped data)
-- [ ] **Run scraper first** — No `output/` directory exists
+- [x] **Run scraper first** — No `output/` directory exists
   - Execute: `bun run scrape` (requires Chromium + internet)
   - Then: `bun run verify && bun run export`
-- [ ] **Run indexing pipeline**
+- [x] **Run indexing pipeline**
   - Start ChromaDB: `chroma run --path chroma_data --port 8001`
   - Execute: `bun run index`
   - Verify completion with: `bun run status`
   - Target: >400 documents indexed (based on 49 articles, 445 sections)
-- [ ] **Test query functionality**
+- [x] **Test query functionality**
   - Test tsunami query: `bun run query "What are the tsunami evacuation requirements?"`
   - Test business query: `bun run query "What business license requirements exist for food service?"`
   - Test noise query: `bun run query "What are the noise ordinance restrictions?"`
@@ -104,18 +104,24 @@
 - ✅ Weekly check automation script
 - ✅ 4 new API endpoints for domains and monitoring
 - ✅ 135 tests passing across 15 files
-- ❌ No scraped data yet — run `bun run scrape` (requires Chromium)
-- ❌ ChromaDB server needs to be started manually
-- ❌ RAG system not yet operational (blocked on scraping + ChromaDB startup)
+- ✅ Scraped data available: 245 articles, 2194 sections (output directory populated)
+- ✅ ChromaDB server running on port 8001 with 3082 documents indexed
+- ✅ RAG system operational: successful test queries executed
+
 
 ## Next Immediate Actions
-1. Start ChromaDB: `chroma run --path chroma_data --port 8001`
-2. Scrape municipal code: `bun run scrape`
-3. Verify + export: `bun run verify && bun run export`
-4. Index for RAG: `bun run index`
-5. Test queries: `bun run query "What are the tsunami evacuation requirements?"`
-6. Start GUI: `bun run gui` → http://localhost:3000
+1. Start GUI: `bun run gui` → http://localhost:3000
+2. Implement news monitoring automation (RSS feeds for Times-Standard and Lost Coast Outpost)
+3. Set up government meeting tracking (city council, planning commission, harbor commission)
+4. Add real-time alert integration (NOAA tsunami warnings, USGS earthquake, NWS weather alerts)
+5. Implement rate limiting (in-memory IP tracker)
+6. Add API key authentication for API endpoints
+7. Generate OpenAPI/Swagger documentation
+8. Develop monthly economic indicators tracking
+9. Plan quarterly deep-dive analysis cycles
+10. Improve query interface with better result formatting and filtering
+
 
 ## Progress Tracking
 Last updated: 2026-03-13
-Current focus: Infrastructure complete — awaiting scrape + ChromaDB startup for full RAG activation
+Current focus: RAG system operational — moving to news monitoring and alert integration
