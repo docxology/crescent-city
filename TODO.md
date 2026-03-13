@@ -71,8 +71,9 @@
   - RSS feed parsing for Times-Standard and Lost Coast Outpost
   - Keyword filtering (tsunami, emergency, prison, fishing, harbor)
   - Saves historical JSON output to `output/news/`
-- [ ] **Government meeting tracking** (future)
-  - City council, planning commission, harbor commission agendas
+- [x] **Government meeting tracking** (active)
+  - Tracks agendas and minutes for city council, planning commission, and harbor commission
+  - Saves historical JSON output to `output/gov_meetings/`
 - [ ] **Real-time alert integration** (future)
   - NOAA tsunami warnings, USGS earthquake, NWS weather alerts
 
@@ -109,20 +110,21 @@
 - ✅ ChromaDB server running on port 8001 with 3082 documents indexed
 - ✅ RAG system operational: successful test queries executed
 - ✅ News monitoring automation: functional RSS feed parser with historical storage
+- ✅ Government meeting tracking: functional agenda/minutes tracker with historical storage
 - ✅ Continuous improvement system: automated work iterations via cron (15m interval)
 
 ## Next Immediate Actions
 1. Start GUI: `bun run gui` → http://localhost:3000
-2. Set up government meeting tracking (city council, planning commission, harbor commission)
-3. Add real-time alert integration (NOAA tsunami warnings, USGS earthquake, NWS weather alerts)
-4. Implement rate limiting (in-memory IP tracker)
-5. Add API key authentication for API endpoints
-6. Generate OpenAPI/Swagger documentation
-7. Develop monthly economic indicators tracking
-8. Plan quarterly deep-dive analysis cycles
-9. Improve query interface with better result formatting and filtering
-10. Expand news monitoring to include additional local sources and social media
+2. Add real-time alert integration (NOAA tsunami warnings, USGS earthquake, NWS weather alerts)
+3. Implement rate limiting (in-memory IP tracker)
+4. Add API key authentication for API endpoints
+5. Generate OpenAPI/Swagger documentation
+6. Develop monthly economic indicators tracking
+7. Plan quarterly deep-dive analysis cycles
+8. Improve query interface with better result formatting and filtering
+9. Expand news monitoring to include additional local sources and social media
+10. Enhance government meeting tracking with actual parsing and change detection
 
 ## Progress Tracking
 Last updated: 2026-03-13
-Current focus: News monitoring and alert integration active — moving toward government meeting tracking and real-time alerts
+Current focus: News monitoring and government meeting tracking active — moving toward real-time alerts and API enhancements
