@@ -176,25 +176,25 @@ logger.info('News monitor script executed. This is a placeholder for RSS feed pr
         
         # Replace the Last run timestamp in the comment
         new_content = re.sub(
-            r'\* Last run: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z',
+            r'\\* Last run: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z',
             f'* Last run: {datetime.now().isoformat(timespec="milliseconds")}Z',
             content
         )
         # If the above didn't match (maybe the format is different), try another pattern
         if new_content == content:
             new_content = re.sub(
-                r'\* Last run: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',
+                r'\\* Last run: \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}',
                 f'* Last run: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
                 content
             )
         if new_content == content:
             # Fallback: replace the line that contains "Last run:"
-            lines = content.split('\n')
+            lines = content.split('\\n')
             for i, line in enumerate(lines):
                 if 'Last run:' in line:
                     lines[i] = f' * Last run: {datetime.now().isoformat()}'
                     break
-            new_content = '\n'.join(lines)
+            new_content = '\\n'.join(lines)
         
         with open(gov_script_path, 'w') as f:
             f.write(new_content)
@@ -202,24 +202,23 @@ logger.info('News monitor script executed. This is a placeholder for RSS feed pr
     else:
         log(f"   {gov_script_path} not found, creating a basic one")
         # Create a basic government meeting monitoring script
-        with open(gov_script_path, 'w') as f:
-            f.write(f'''#!/usr/bin/env bun
+        base_content = '''#!/usr/bin/env bun
 /**
  * Government meeting tracking automation for Crescent City.
  * Tracks agendas and minutes for city council, planning commission, and harbor commission.
- * Last run: {datetime.now().isoformat()}
+ * Last run: 
  */
-import {{ logger }} from './logger.js';
-import {{ computeSha256, htmlToText }} from './utils.js';
+import { logger } from './logger.js';
+import { computeSha256, htmlToText } from './utils.js';
 
-// Government meeting sources
-const GOV_SOURCES = {{
+//// Government meeting sources
+const GOV_SOURCES = {
   'City Council': 'https://crescentcity.org/government/city-council/agendas',
   'Planning Commission': 'https://crescentcity.org/government/planning-commission/agendas',
   'Harbor Commission': 'https://crescentcity.org/government/harbor-commission/agendas'
-}};
+};
 
-// Keywords for filtering relevant meeting items
+//// Keywords for filtering relevant meeting items
 const MEETING_KEYWORDS = [
   'agenda',
   'minutes',
@@ -242,142 +241,135 @@ const MEETING_KEYWORDS = [
 /**
  * Fetch and parse a government meeting page
  */
-async function fetchGovMeetings(url: string, sourceName: string): Promise<Array<{{title: string, link: string, date: string, content: string}}>> {{
-  try {{
-    logger.info(`Fetching government meetings from ${{sourceName}}`, {{ url }});
-    }
-}
-    
-    const response = await fetch(url);
-    if (!response.ok) {{
-      throw new Error(`HTTP ${{response.status}}: ${{response.statusText}}`);
-    }}
-    
-    const html = await response.text();
-    
-    // Simple extraction - in production, use proper HTML parser
-    const items = [];
-    // Look for links that might be agendas or minutes
-    const linkRegex = /<a[^>]*href=["']([^"']*)["'][^>]*>([^<]*)<\/a>/g;
-    let match;
-    
-    while ((match = linkRegex.exec(html)) !== null) {{
-      const link = match[1];
-      const title = match[2].trim();
-      
-      // Make link absolute if needed
-      const fullLink = link.startsWith('http') ? link : new URL(link, url).toString();
-      
-      // Check if it's likely a meeting document
-      const isMeetingDoc = MEETING_KEYWORDS.some(keyword => 
-        title.toLowerCase().includes(keyword.toLowerCase())
-      );
-      
-      if (isMeetingDoc && title && fullLink) {{
-        items.push({{
-          title,
-          link: fullLink,
-          date: new Date().toISOString().split('T')[0], // Just date for now
-          content: title // Simplified
-        }});
-      }}
-    }}
-    
-    logger.info(`Found ${{items.length}} government meeting items from ${{sourceName}}`, {{ count: items.length }});
-    return items;
-    
-  }} catch (error) {{
-    logger.error(`Failed to fetch government meetings from ${{sourceName}}`, {{ error: error.message, url }});
+async function fetchGovMeetings(url: string, sourceName: string): Promise<Array<{title: string, link: string, date: string, content: string}>> {
+  try {
+    logger.info(`Fetching government meetings from ${sourceName}`, { url });
+  } catch (error) {
+    logger.error(`Failed to fetch government meetings from ${sourceName}`, { error: error.message, url });
     return [];
-  }}
-}}
+  }
 
-/**
- * Save government meeting items to a JSON file for historical tracking
- */
-async function saveGovMeetings(items: Array<{{title: string, link: string, date: string, content: string, source: string, fetchedAt: string}}>): Promise<void> {{
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const html = await response.text();
+
+  // Simple extraction - in production, use proper HTML parser
+  const items = [];
+  // Look for links that might be agendas or minutes
+  const linkRegex = /<a[^>]*href=[\"']([^\"']*)[\"'][^>]*>([^<]*)<\/a>/g;
+  let match;
+
+  while ((match = linkRegex.exec(html)) !== null) {
+    const link = match[1];
+    const title = match[2].trim();
+
+    // Make link absolute if needed
+    const fullLink = link.startsWith('http') ? link : new URL(link, url).toString();
+
+    // Check if it's likely a meeting document
+    const isMeetingDoc = MEETING_KEYWORDS.some(keyword => 
+      title.toLowerCase().includes(keyword.toLowerCase())
+    );
+
+    if (isMeetingDoc && title && fullLink) {
+      items.push({
+        title,
+        link: fullLink,
+        date: new Date().toISOString().split('T')[0], // Just date for now
+        content: title // Simplified
+      });
+    }
+  }
+
+  logger.info(`Found ${items.length} government meeting items from ${sourceName}`, { count: items.length });
+  return items;
+}
+
+async function saveGovMeetings(items: Array<{title: string, link: string, date: string, content: string, source: string, fetchedAt: string}>): Promise<void> {
   const fs = await import('fs/promises');
   const path = await import('path');
-  
+
   const dataDir = path.join(process.cwd(), 'output', 'gov_meetings');
-  try {{
-    await fs.mkdir(dataDir, {{ recursive: true }});
-  }} catch (e) {{
+  try {
+    await fs.mkdir(dataDir, { recursive: true });
+  } catch (e) {
     // Directory might already exist
-  }}
-  
+  }
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const filename = path.join(dataDir, `gov_meetings-${{timestamp}}.json`);
-  
-  const data = {{
+  const filename = path.join(dataDir, `gov_meetings-${timestamp}.json`);
+
+  const data = {
     fetchedAt: new Date().toISOString(),
     totalItems: items.length,
     items: items
-  }};
-  
-  await fs.writeFile(filename, JSON.stringify(data, null, 2));
-  logger.info(`Saved government meeting items to ${{filename}}`);
-}}
+  };
 
-/**
- * Main government meeting monitoring function
- */
-async function monitorGovMeetings(): Promise<void> {{
+  await fs.writeFile(filename, JSON.stringify(data, null, 2));
+  logger.info(`Saved government meeting items to ${filename}`);
+}
+
+async function monitorGovMeetings(): Promise<void> {
   logger.info('=== Starting Crescent City Government Meeting Tracking ===');
-  
-  const allItems: Array<{{title: string, link: string, date: string, content: string, source: string, fetchedAt: string}}> = [];
-  
+
+  const allItems: Array<{title: string, link: string, date: string, content: string, source: string, fetchedAt: string}> = [];
+
   // Fetch from each government source
-  for (const [sourceName, url] of Object.entries(GOV_SOURCES)) {{
-    try {{
+  for (const [sourceName, url] of Object.entries(GOV_SOURCES)) {
+    try {
       const items = await fetchGovMeetings(url, sourceName);
-      for (const item of items) {{
-        allItems.push({{
+      for (const item of items) {
+        allItems.push({
           ...item,
           source: sourceName,
           fetchedAt: new Date().toISOString()
-        }});
-      }}
-    }} catch (error) {{
-      logger.error(`Error processing ${{sourceName}}`, {{ error: error.message }});
-    }}
-  }}
-  
+        });
+      }
+    } catch (error) {
+      logger.error(`Error processing ${sourceName}`, { error: error.message });
+    }
+  }
+
   // Sort by date (newest first)
-  allItems.sort((a, b) => {{
+  allItems.sort((a, b) => {
     const dateA = new Date(a.date).getTime();
     const dateB = new Date(b.date).getTime();
     return dateB - dateA; // Descending
-  }});
-  
+  });
+
   // Save the results
-  if (allItems.length > 0) {{
+  if (allItems.length > 0) {
     await saveGovMeetings(allItems);
-    logger.info(`Government meeting tracking complete: ${{allItems.length}} items found`);
-    
+    logger.info(`Government meeting tracking complete: ${allItems.length} items found`);
+
     // Log the top 3 items for immediate visibility
-    for (let i = 0; i < Math.min(3, allItems.length); i++) {{
+    for (let i = 0; i < Math.min(3, allItems.length); i++) {
       const item = allItems[i];
-      logger.info(`Top gov meeting item ${{i+1}}:`, {{
+      logger.info(`Top gov meeting item ${i+1}:`, {
         title: item.title,
         source: item.source,
         date: item.date
-      }});
-    }}
-  }} else {{
-    logger.warn('No government meeting items found in this cycle');
-  }}
-  });
-}
+      });
+    }
+  } else {
+    logger.warn(\"No government meeting items found in this cycle\");
+  }
+};
+'''
 
-            ''')
-// Run the monitoring if this script is executed directly
-if (import.meta.main) {
-  monitorGovMeetings().catch(error => {
-    logger.error('Government meeting tracking failed', { error: error.message });
-  });
-}
-            ''')
+        # Insert the timestamp in the comment
+        lines = base_content.split('\\\\n')
+        for i, line in enumerate(lines):
+            if 'Last run:' in line:
+                lines[i] = f' * Last run: {datetime.now().isoformat()}'
+                break
+        content = '\\\\n'.join(lines)
+
+        with open(gov_script_path, 'w') as f:
+            f.write(content)
     # Now, actually run the news monitor to see if it works and generate output
     log(f"   Running the news monitor script...")
     result = run_command(f'{bun_path} run {news_script_path}', timeout=30)
