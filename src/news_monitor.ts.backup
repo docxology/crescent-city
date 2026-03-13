@@ -2,18 +2,21 @@
 /**
  * News monitoring automation for Crescent City.
  * Fetches RSS feeds from Times-Standard, Lost Coast Outpost, and Humboldt Times.
- * Last run: 2026-03-13T13:29:48.988Z
+ * Uses proper XML parsing for reliability.
+ * Last run: 2026-03-13T14:58:13.817Z
  */
 import { createLogger } from './logger.js';
 import { computeSha256, htmlToText } from './utils.js';
+import { DOMParser } from '@xmldom/xmldom';
 
 const logger = createLogger('news_monitor');
 
 // RSS feed URLs for local news sources
 const NEWS_FEEDS = {
-  'Times-Standard': 'https://www.times-standard.com/news/rss.xml',
+  'Times-Standard': 'https://www.times-standard.com/feed/',
+  'North Coast Journal': 'https://www.northcoastjournal.com/feed/',
   'Lost Coast Outpost': 'https://lostcoastoutpost.com/feed',
-  'Humboldt Times': 'https://www.humboldtcountynews.com/feed' // Placeholder - replace with actual RSS URL
+  'KMUD Radio': 'https://kmud.org/feed/'
 };
 
 // Keywords for filtering relevant Crescent City news
@@ -40,9 +43,9 @@ const CRESCENT_CITY_KEYWORDS = [
 ];
 
 /**
- * Fetch and parse an RSS feed
+ * Fetch and parse an RSS feed using proper XML parsing
  */
-async function fetchRSSFeed(url: string, sourceName: string): Promise<Array<{title: string, link: string, pubDate: string, content: string}>> {
+export async function fetchRSSFeed(url: string, sourceName: string): Promise<Array<{title: string, link: string, pubDate: string, content: string}>> {
   try {
     logger.info(`Fetching RSS feed from ${sourceName}`, { url });
     
@@ -53,26 +56,32 @@ async function fetchRSSFeed(url: string, sourceName: string): Promise<Array<{tit
     
     const xmlText = await response.text();
     
-    // Simple regex-based extraction for demo purposes
-    // In production, use a proper XML parser like @xmldom/xmldom
-    const items = [];
-    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-    let match;
+    // Parse XML with DOMParser
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+    
+    // Check for parsing errors
+    if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+      throw new Error('Failed to parse XML');
+    }
+    
+    const items: Array<{title: string, link: string, pubDate: string, content: string}> = [];
+    const itemNodes = xmlDoc.getElementsByTagName("item");
     
     // Use a set to deduplicate by link within this feed
     const linksInFeed = new Set<string>();
     
-    while ((match = itemRegex.exec(xmlText)) !== null) {
-      const itemContent = match[1];
+    for (let i = 0; i < itemNodes.length; i++) {
+      const item = itemNodes[i];
       
-      const titleMatch = itemContent.match(/<title>([\s\S]*?)<\/title>/);
-      const linkMatch = itemContent.match(/<link>([\s\S]*?)<\/link>/);
-      const pubDateMatch = itemContent.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
-      const descriptionMatch = itemContent.match(/<description>([\s\S]*?)<\/description>/);
+      const titleElement = item.getElementsByTagName("title")[0];
+      const linkElement = item.getElementsByTagName("link")[0];
+      const pubDateElement = item.getElementsByTagName("pubDate")[0];
+      const descriptionElement = item.getElementsByTagName("description")[0];
       
-      if (titleMatch && linkMatch) {
-        const title = titleMatch[1].replace(/<[^>]*>/g, '').trim();
-        const link = linkMatch[1].trim();
+      if (titleElement && linkElement) {
+        const title = titleElement.textContent?.replace(/<[^>]*>/g, '').trim() || '';
+        const link = linkElement.textContent?.trim() || '';
         
         // Skip if we've already seen this link in this feed
         if (linksInFeed.has(link)) {
@@ -80,8 +89,9 @@ async function fetchRSSFeed(url: string, sourceName: string): Promise<Array<{tit
         }
         linksInFeed.add(link);
         
-        const pubDate = pubDateMatch ? pubDateMatch[1].trim() : '';
-        const description = descriptionMatch ? htmlToText(descriptionMatch[1]).substring(0, 500) : '';
+        const pubDate = pubDateElement ? pubDateElement.textContent?.trim() || '' : '';
+        const description = descriptionElement ? 
+          htmlToText(descriptionElement.textContent || '').substring(0, 500) : '';
         
         // Check if article is relevant to Crescent City
         const isRelevant = CRESCENT_CITY_KEYWORDS.some(keyword => 
@@ -112,7 +122,7 @@ async function fetchRSSFeed(url: string, sourceName: string): Promise<Array<{tit
 /**
  * Save news items to a JSON file for historical tracking
  */
-async function saveNewsItems(items: Array<{title: string, link: string, pubDate: string, content: string, source: string, fetchedAt: string}>): Promise<void> {
+export async function saveNewsItems(items: Array<{title: string, link: string, pubDate: string, content: string, source: string, fetchedAt: string}>): Promise<void> {
   const fs = await import('fs/promises');
   const path = await import('path');
   
@@ -137,35 +147,40 @@ async function saveNewsItems(items: Array<{title: string, link: string, pubDate:
 }
 
 /**
- * Main news monitoring function
+ * Main news monitoring function with concurrent feed fetching
  */
-async function monitorNews(): Promise<void> {
+export async function monitorNews(): Promise<void> {
   logger.info('=== Starting Crescent City News Monitoring ===');
   
   const allItems: Array<{title: string, link: string, pubDate: string, content: string, source: string, fetchedAt: string}> = [];
   const seenLinks = new Set<string>();
   
-  // Fetch from each news source
-  for (const [sourceName, url] of Object.entries(NEWS_FEEDS)) {
-    try {
-      const items = await fetchRSSFeed(url, sourceName);
-      for (const item of items) {
-        // Skip if we've already seen this link from any source
-        if (seenLinks.has(item.link)) {
-          continue;
+  // Fetch from each news source concurrently
+  const fetchPromises = Object.entries(NEWS_FEEDS).map(
+    async ([sourceName, url]) => {
+      try {
+        const items = await fetchRSSFeed(url, sourceName);
+        for (const item of items) {
+          // Skip if we've already seen this link from any source
+          if (seenLinks.has(item.link)) {
+            return;
+          }
+          seenLinks.add(item.link);
+          
+          allItems.push({
+            ...item,
+            source: sourceName,
+            fetchedAt: new Date().toISOString()
+          });
         }
-        seenLinks.add(item.link);
-        
-        allItems.push({
-          ...item,
-          source: sourceName,
-          fetchedAt: new Date().toISOString()
-        });
+      } catch (error) {
+        logger.error(`Error processing ${sourceName}`, { error: error.message });
       }
-    } catch (error) {
-      logger.error(`Error processing ${sourceName}`, { error: error.message });
     }
-  }
+  );
+  
+  // Wait for all fetches to complete
+  await Promise.all(fetchPromises);
   
   // Sort by publication date (newest first)
   allItems.sort((a, b) => {
