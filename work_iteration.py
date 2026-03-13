@@ -366,17 +366,15 @@ async function monitorGovMeetings(): Promise<void> {{
     logger.warn('No government meeting items found in this cycle');
   }}
   
-  logger.info('=== Government Meeting Tracking Complete ===');
-}}
+  }}
+}
 
 // Run the monitoring if this script is executed directly
-if (import.meta.main) {{
-  monitorGovMeetings().catch(error => {{
-    logger.error('Government meeting tracking failed', {{ error: error.message }});
-    process.exit(1);
-  }});
-}}
-)
+if (import.meta.main) {
+  monitorGovMeetings().catch(error => {
+    logger.error('Government meeting tracking failed', { error: error.message });
+  });
+}
     
     # Now, actually run the news monitor to see if it works and generate output
     log(f"   Running the news monitor script...")
