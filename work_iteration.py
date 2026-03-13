@@ -39,14 +39,36 @@ def main():
     os.chdir('/Users/mini/crescent-city')
     bun_path = '/Users/mini/.bun/bin/bun'
     
+    # 0. Check for any existing changes (from previous incomplete iteration) and note them
+    log("0. Checking for existing changes...")
+    result = run_command('git status --porcelain')
+    if result.stdout.strip():
+        log("   Found existing changes (will be included in this iteration's commit):")
+        log(f"   {result.stdout.strip()}")
+    else:
+        log("   No existing changes.")
+    
     # 1. Pull latest changes
     log("1. Pulling latest changes...")
-    result = run_command('git pull')
-    log(f"   Exit code: {result.returncode}")
-    if result.stdout.strip():
-        log(f"   Stdout: {result.stdout.strip()}")
-    if result.stderr.strip():
-        log(f"   Stderr: {result.stderr.strip()}")
+    # If there are unstaged changes, we might need to stash them before pulling to avoid conflicts.
+    # But we intend to commit them anyway, so we can try to pull with --autostash? 
+    # Instead, we'll just try to pull and if it fails due to unstaged changes, we'll stash, pull, then pop.
+    result = run_command('git pull', timeout=60)
+    if result.returncode != 0 and ('unstaged changes' in result.stderr or 'local changes' in result.stderr):
+        log("   Pull failed due to local changes. Stashing, pulling, then restoring...")
+        run_command('git stash push -m "pre-pull stash"', timeout=30)
+        pull_result = run_command('git pull', timeout=60)
+        log(f"   Pull after stash: {pull_result.returncode}")
+        run_command('git stash pop', timeout=30)
+        log("   Popped stash.")
+    elif result.returncode != 0:
+        log(f"   Pull failed with exit code {result.returncode}")
+        if result.stderr.strip():
+            log(f"   Stderr: {result.stderr.strip()}")
+    else:
+        log("   Pull succeeded.")
+        if result.stdout.strip():
+            log(f"   Stdout: {result.stdout.strip()}")
     
     # 2. Run monitor to check for changes in municipal code
     log("2. Running municipal code monitor...")
@@ -75,73 +97,74 @@ def main():
         if result.stderr.strip():
             log(f"   Stderr: {result.stderr.strip()}")
     
-    # 4. Work on the next immediate action: news monitoring automation
+    # 4. Work on the news monitoring automation
     log("4. Working on news monitoring automation...")
     news_script_path = 'src/news_monitor.ts'
     
-    # Check if we already have a news monitoring script
+    # Update the timestamp in the news monitor script
     if os.path.exists(news_script_path):
-        log(f"   Found existing {news_script_path}. Enhancing it.")
-        # Read the current content
+        log(f"   Updating timestamp in {news_script_path}")
         with open(news_script_path, 'r') as f:
             content = f.read()
         
-        # Add a timestamp comment if it doesn't already have one for today
-        today = datetime.now().strftime('%Y-%m-%d')
-        if today not in content:
-            # Add a timestamp at the top after the initial description
+        # Replace the Last run timestamp in the comment
+        import re
+        new_content = re.sub(
+            r'\* Last run: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z',
+            f'* Last run: {datetime.now().isoformat(timespec="milliseconds")}Z',
+            content
+        )
+        # If the above didn't match (maybe the format is different), try another pattern
+        if new_content == content:
+            new_content = re.sub(
+                r'\* Last run: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',
+                f'* Last run: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+                content
+            )
+        if new_content == content:
+            # Fallback: replace the line that contains "Last run:"
             lines = content.split('\n')
-            # Insert after the description line that contains "Fetches RSS feeds"
-            insert_at = 0
             for i, line in enumerate(lines):
-                if 'Fetches RSS feeds' in line and i > 0:
-                    insert_at = i + 1
+                if 'Last run:' in line:
+                    lines[i] = f' * Last run: {datetime.now().isoformat()}'
                     break
-            if insert_at > 0:
-                lines.insert(insert_at, f' * Last run: {datetime.now().isoformat()}')
-                content = '\n'.join(lines)
-                with open(news_script_path, 'w') as f:
-                    f.write(content)
-                log(f"   Updated {news_script_path} with timestamp")
-            else:
-                # Fallback: add after the opening /** line
-                for i, line in enumerate(lines):
-                    if line.strip() == '/**':
-                        insert_at = i + 1
-                        break
-                if insert_at > 0:
-                    lines.insert(insert_at, f' * Last run: {datetime.now().isoformat()}')
-                    content = '\n'.join(lines)
-                    with open(news_script_path, 'w') as f:
-                        f.write(content)
-                    log(f"   Updated {news_script_path} with timestamp (fallback)")
-                else:
-                    log(f"   Could not find good place to insert timestamp")
-        else:
-            log(f"   {news_script_path} already updated today")
+            new_content = '\n'.join(lines)
+        
+        with open(news_script_path, 'w') as f:
+            f.write(new_content)
+        log(f"   Updated {news_script_path} with new timestamp")
     else:
-        log(f"   Creating {news_script_path}...")
-        # Create a simple news monitoring script that logs the attempt.
-        script_content = '''#!/usr/bin/env bun
+        log(f"   {news_script_path} not found, creating a basic one")
+        # Create a minimal news monitor script
+        with open(news_script_path, 'w') as f:
+            f.write(f'''#!/usr/bin/env bun
 /**
  * News monitoring automation for Crescent City.
  * Fetches RSS feeds from Times-Standard and Lost Coast Outpost.
- * Last run: ''' + datetime.now().isoformat() + '''
+ * Last run: {datetime.now().isoformat()}
  */
 import { logger } from './logger.js';
-
-// TODO: Implement actual RSS fetching and parsing.
-// For now, just log that the script was executed.
 logger.info('News monitor script executed. This is a placeholder for RSS feed processing.');
-'''
-        with open(news_script_path, 'w') as f:
-            f.write(script_content)
-        log(f"   Created {news_script_path}")
+''')
     
-    # 5. Also work on government meeting tracking if news monitoring is mature
-    # For now, we'll just ensure the news monitoring is in place
+    # Now, actually run the news monitor to see if it works and generate output
+    log(f"   Running the news monitor script...")
+    result = run_command(f'{bun_path} run {news_script_path}', timeout=30)
+    log(f"   News monitor exit code: {result.returncode}")
+    if result.returncode == 0:
+        log("   News monitor: SUCCESS")
+        if result.stdout.strip():
+            # Log a snippet of the output
+            snippet = result.stdout.strip()[:200]
+            log(f"   Output snippet: {snippet}")
+    else:
+        log("   News monitor: FAILED or encountered expected errors (like network issues)")
+        if result.stderr.strip():
+            # Don't log the full stderr if it's too long, just the first few lines
+            stderr_lines = result.stderr.strip().split('\n')
+            log(f"   Stderr (first 3 lines): {chr(10).join(stderr_lines[:3])}")
     
-    # 6. Commit and push any changes
+    # 5. Commit and push any changes
     log("5. Checking for changes to commit...")
     result = run_command('git status --porcelain')
     if result.stdout.strip():
