@@ -89,12 +89,12 @@ def main():
         # Add a timestamp comment if it doesn't already have one for today
         today = datetime.now().strftime('%Y-%m-%d')
         if today not in content:
-            # Add a timestamp at the top
+            # Add a timestamp at the top after the initial description
             lines = content.split('\n')
-            # Insert after the shebang and initial comment
+            # Insert after the description line that contains "Fetches RSS feeds"
             insert_at = 0
             for i, line in enumerate(lines):
-                if line.startswith('*/') and i > 0:
+                if 'Fetches RSS feeds' in line and i > 0:
                     insert_at = i + 1
                     break
             if insert_at > 0:
@@ -104,7 +104,19 @@ def main():
                     f.write(content)
                 log(f"   Updated {news_script_path} with timestamp")
             else:
-                log(f"   Could not find good place to insert timestamp")
+                # Fallback: add after the opening /** line
+                for i, line in enumerate(lines):
+                    if line.strip() == '/**':
+                        insert_at = i + 1
+                        break
+                if insert_at > 0:
+                    lines.insert(insert_at, f' * Last run: {datetime.now().isoformat()}')
+                    content = '\n'.join(lines)
+                    with open(news_script_path, 'w') as f:
+                        f.write(content)
+                    log(f"   Updated {news_script_path} with timestamp (fallback)")
+                else:
+                    log(f"   Could not find good place to insert timestamp")
         else:
             log(f"   {news_script_path} already updated today")
     else:
