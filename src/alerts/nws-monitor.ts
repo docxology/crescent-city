@@ -13,7 +13,7 @@ const NWS_ALERT_FEED = 'https://api.weather.gov/alerts/active?zone=CAZ006&status
 /**
  * Fetch and parse NWS weather alerts
  */
-export async function fetchNwsAlerts(): Promise<Array<{
+export async function fetchNwsAlerts(): Promise<{
   id: string;
   areaDesc: string;
   event: string;
@@ -27,7 +27,7 @@ export async function fetchNwsAlerts(): Promise<Array<{
   instruction: string;
   polygon: string | null;
   parameters: Record<string, any>;
-}> {
+}[]> {
   try {
     logger.info('Fetching NWS weather alerts', { url: NWS_ALERT_FEED });
     
@@ -47,7 +47,7 @@ export async function fetchNwsAlerts(): Promise<Array<{
       throw new Error('Invalid NWS alert data format');
     }
     
-    const alerts: Array<{
+    const alerts: {
       id: string;
       areaDesc: string;
       event: string;
@@ -61,7 +61,7 @@ export async function fetchNwsAlerts(): Promise<Array<{
       instruction: string;
       polygon: string | null;
       parameters: Record<string, any>;
-    }> = [];
+    }[] = [];
     
     for (const feature of data.features) {
       const props = feature.properties;
@@ -107,7 +107,7 @@ export async function fetchNwsAlerts(): Promise<Array<{
 /**
  * Save NWS alerts to JSON file for historical tracking
  */
-export async function saveNwsAlerts(alerts: Array<{
+export async function saveNwsAlerts(alerts: {
   id: string;
   areaDesc: string;
   event: string;
@@ -122,7 +122,7 @@ export async function saveNwsAlerts(alerts: Array<{
   polygon: string | null;
   parameters: Record<string, any>;
   fetchedAt: string;
-}>): Promise<void> {
+}[]): Promise<void> {
   const fs = await import('fs/promises');
   const path = await import('path');
   
@@ -166,7 +166,7 @@ export async function monitorNwsAlerts(): Promise<void> {
       
       logger.info(`NWS monitoring complete: ${alerts.length} new alerts processed`);
       
-      # Filter for relevant weather events (coastal flood, high wind, storm warnings)
+      // Filter for relevant weather events (coastal flood, high wind, storm warnings)
       const relevantEvents = ['Coastal Flood', 'High Wind', 'Storm', 'Marine', 'Gale', 'Freeze', 'Hard Freeze', 'Blizzard', 'Winter Storm', 'Ice Storm', 'Lake Effect Snow'];
       
       const relevantAlerts = alerts.filter(alert => 

@@ -128,8 +128,65 @@ def main():
     else:
         log(f"   {gov_script_path} not found, skipping")
     
-    # 5. Commit and push any changes
-    log("5. Checking for changes to commit...")
+    # 5. Work on alert monitoring systems
+    log("5. Working on alert monitoring systems...")
+    
+    # 5a. NOAA Tsunami Monitor
+    log("5a. Running NOAA tsunami monitor...")
+    noaa_script_path = 'src/alerts/noaa-monitor.ts'
+    if os.path.exists(noaa_script_path):
+        run_command(f'touch {noaa_script_path}', timeout=5)
+        log(f"   Touched {noaa_script_path}")
+        result = run_command(f'{bun_path} run {noaa_script_path}', timeout=30)
+        log(f"   NOAA monitor exit code: {result.returncode}")
+        if result.returncode == 0:
+            log("   NOAA monitor: SUCCESS")
+        else:
+            log("   NOAA monitor: FAILED or encountered expected errors")
+            if result.stderr.strip():
+                stderr_lines = result.stderr.strip().split('\n')
+                log(f"   Stderr (first 3 lines): {chr(10).join(stderr_lines[:3])}")
+    else:
+        log(f"   {noaa_script_path} not found")
+    
+    # 5b. USGS Earthquake Monitor
+    log("5b. Running USGS earthquake monitor...")
+    usgs_script_path = 'src/alerts/usgs-monitor.ts'
+    if os.path.exists(usgs_script_path):
+        run_command(f'touch {usgs_script_path}', timeout=5)
+        log(f"   Touched {usgs_script_path}")
+        result = run_command(f'{bun_path} run {usgs_script_path}', timeout=30)
+        log(f"   USGS monitor exit code: {result.returncode}")
+        if result.returncode == 0:
+            log("   USGS monitor: SUCCESS")
+        else:
+            log("   USGS monitor: FAILED or encountered expected errors")
+            if result.stderr.strip():
+                stderr_lines = result.stderr.strip().split('\n')
+                log(f"   Stderr (first 3 lines): {chr(10).join(stderr_lines[:3])}")
+    else:
+        log(f"   {usgs_script_path} not found")
+    
+    # 5c. NWS Weather Monitor
+    log("5c. Running NWS weather monitor...")
+    nws_script_path = 'src/alerts/nws-monitor.ts'
+    if os.path.exists(nws_script_path):
+        run_command(f'touch {nws_script_path}', timeout=5)
+        log(f"   Touched {nws_script_path}")
+        result = run_command(f'{bun_path} run {nws_script_path}', timeout=30)
+        log(f"   NWS monitor exit code: {result.returncode}")
+        if result.returncode == 0:
+            log("   NWS monitor: SUCCESS")
+        else:
+            log("   NWS monitor: FAILED or encountered expected errors")
+            if result.stderr.strip():
+                stderr_lines = result.stderr.strip().split('\n')
+                log(f"   Stderr (first 3 lines): {chr(10).join(stderr_lines[:3])}")
+    else:
+        log(f"   {nws_script_path} not found")
+    
+    # 6. Commit and push any changes
+    log("6. Checking for changes to commit...")
     result = run_command('git status --porcelain')
     if result.stdout.strip():
         log("   Changes detected:")
