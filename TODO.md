@@ -2,127 +2,120 @@
 
 ## Overall Goal: Build a comprehensive local intelligence system for Crescent City, CA that provides actionable insights on municipal code, emergency management, business development, and community safety.
 
-## Phase 1: Fix Technical Infrastructure (Immediate - Next 2 hours)
-- [ ] **Resolve ChromaDB connectivity issues**
-  - Kill all existing chroma processes: `pkill -f chroma`
-  - Check for port conflicts (especially irdmi on 8000): `lsof -i :8000`
-  - Try alternative ports (8002, 8003, etc.) or embedded mode
-  - Test connection: `curl -s http://localhost:[PORT]/api/v1/heartbeat` or `/api/v2/heartbeat`
-- [ ] **Fix ChromaDB client configuration**
-  - Update `src/llm/config.ts` to use correct port or embedded path
-  - Ensure `src/llm/chroma.ts` uses proper ChromaClient initialization
-  - Test with simple script before full indexing
-- [ ] **Verify Ollama is running and models available**
-  - Check: `curl -s http://localhost:11434/api/tags`
-  - Ensure nomic-embed-text and gemma3:4b are pulled
+## Phase 1: Fix Technical Infrastructure ✅
+- [x] **Resolve ChromaDB connectivity issues**
+  - Port 8000 occupied by irdmi service on macOS
+  - Changed default to port 8001 in `src/llm/config.ts`
+  - Use `CHROMA_URL` env var to override: `CHROMA_URL=http://localhost:8002 bun run ...`
+  - Test connection: `curl -s http://localhost:8001/api/v1/heartbeat`
+- [x] **Fix ChromaDB client configuration**
+  - Updated `src/llm/config.ts` to use port 8001 default
+  - Added retry logic with `waitForChroma()` in `src/llm/chroma.ts`
+  - Added `resetClient()` for restarting after errors
+  - Added structured logging to all ChromaDB operations
+- [x] **Verify Ollama is running and models available**
+  - ✅ Ollama running at localhost:11434
+  - ✅ `nomic-embed-text` (embedding model) — available
+  - ✅ `gemma3:4b` (chat model) — available
 
-## Phase 2: Activate RAG System (Next 4 hours)
+## Phase 2: Activate RAG System (Requires scraped data)
+- [ ] **Run scraper first** — No `output/` directory exists
+  - Execute: `bun run scrape` (requires Chromium + internet)
+  - Then: `bun run verify && bun run export`
 - [ ] **Run indexing pipeline**
-  - Execute: `bun run src/llm/index.ts index`
-  - Verify completion with: `bun run src/llm/index.ts status`
+  - Start ChromaDB: `chroma run --path chroma_data --port 8001`
+  - Execute: `bun run index`
+  - Verify completion with: `bun run status`
   - Target: >400 documents indexed (based on 49 articles, 445 sections)
 - [ ] **Test query functionality**
-  - Test tsunami-related query: `bun run src/llm/index.ts query "What are the tsunami evacuation requirements?"`
-  - Test business license query: `bun run src/llm/index.ts query "What business license requirements exist for food service?"`
-  - Test public safety query: `bun run src/llm/index.ts query "What are the noise ordinance restrictions?"`
+  - Test tsunami query: `bun run query "What are the tsunami evacuation requirements?"`
+  - Test business query: `bun run query "What business license requirements exist for food service?"`
+  - Test noise query: `bun run query "What are the noise ordinance restrictions?"`
 
-## Phase 3: Enhance Intelligence Domains (Next 8 hours)
-- [ ] **Emergency Management Enhancement**
-  - Add tsunami-specific codes, evacuation routes, shelter locations
-  - Cross-reference with NOAA tsunami zone maps for Crescent City
-  - Add mutual aid agreements with Del Norte County and Pelican Bay
-- [ ] **Business Development Enhancement**
-  - Add fishing/crabbing regulations (crab seasons, gear restrictions)
-  - Add tourism permits (short-term rentals, guided tours)
-  - Add marine facility rules (harbor mooring, commercial fishing)
-- [ ] **Environmental Protection Enhancement**
-  - Add tsunami inundation zone regulations
-  - Add coastal erosion control requirements
-  - Add wetland and riparian buffer protections
-- [ ] **Public Safety Enhancement**
-  - Add prison-related regulations (contraband, visitor procedures)
-  - Add mutual aid protocols with Pelican Bay State Prison
-  - Add emergency communication systems testing requirements
-- [ ] **Event Planning Enhancement** (Currently 0 sections - major opportunity)
-  - Add mass gathering safety protocols
-  - Add tsunami drill/event requirements
-  - Add special event permitting for harbor/waterfront events
-  - Add noise amplification and crowd control regulations
+## Phase 3: Intelligence Domains ✅ (Data layer complete)
+- [x] **Emergency Management** — `src/domains.ts`
+  - Tsunami preparedness & evacuation (3 topics, 9 cross-refs)
+  - Mutual aid agreements (Del Norte County, Pelican Bay)
+  - Emergency communication systems
+- [x] **Business Development** — `src/domains.ts`
+  - Business licenses & permits (4 topics, 12 cross-refs)
+  - Fishing & crabbing industry
+  - Tourism & short-term rentals
+  - Harbor & marine facilities
+- [x] **Environmental Protection** — `src/domains.ts`
+  - Tsunami inundation zone regulations (3 topics, 9 cross-refs)
+  - Coastal erosion & shoreline protection
+  - Wetland & riparian protections
+- [x] **Public Safety** — `src/domains.ts`
+  - Noise ordinances (3 topics, 9 cross-refs)
+  - Prison-related regulations (Pelican Bay)
+  - Vehicle & traffic safety
+- [x] **Event Planning** — `src/domains.ts`
+  - Special event permits (4 topics, 7 cross-refs)
+  - Waterfront & harbor events
+  - Tsunami drills & evacuation exercises
+  - Noise & amplification controls
 
-## Phase 4: Implement Monitoring Systems (Ongoing)
-- [ ] **Automated municipal code monitoring**
-  - Create script that re-runs scraper weekly and compares hashes
-  - Set up GitHub Actions for automated checks (if repo is on GitHub)
-  - Create change detection alerts
-- [ ] **News monitoring automation**
-  - Set up RSS feed parsing for Times-Standard and Lost Coast Outpost
-  - Implement keyword filtering (tsunami, emergency, prison, fishing, harbor, etc.)
-  - Generate daily summary of relevant articles
-- [ ] **Government meeting tracking**
-  - Scrape city website for agendas/minutes (city council, planning commission, harbor commission)
-  - Extract action items related to intelligence domains
-  - Create calendar feed for upcoming meetings
-- [ ] **Real-time alert integration**
-  - Connect to NOAA tsunami warnings via API
-  - Integrate USGS earthquake notifications (Cascadia Subduction Zone relevance)
-  - Integrate NWS weather alerts (coastal flooding, high winds)
-  - Create alert escalation system with severity levels
+## Phase 4: Monitoring Systems ✅ (Infrastructure complete)
+- [x] **Automated municipal code monitoring** — `src/monitor.ts`
+  - SHA-256 hash verification of all saved articles
+  - Section coverage check (TOC vs. scraped data)
+  - JSON report output to `output/monitor-report.json`
+  - CLI: `bun run monitor`
+- [x] **Weekly check script** — `scripts/weekly-check.sh`
+  - Cron-ready shell wrapper with logging
+  - Saves results to `output/weekly-check.log`
+  - Exit code 1 on detected changes
+  - Cron example: `0 2 * * 0 cd /path/to/crescent-city && ./scripts/weekly-check.sh`
+- [ ] **News monitoring automation** (future)
+  - RSS feed parsing for Times-Standard and Lost Coast Outpost
+  - Keyword filtering (tsunami, emergency, prison, fishing, harbor)
+- [ ] **Government meeting tracking** (future)
+  - City council, planning commission, harbor commission agendas
+- [ ] **Real-time alert integration** (future)
+  - NOAA tsunami warnings, USGS earthquake, NWS weather alerts
 
-## Phase 5: Build Query Interface & Applications (Beyond 8 hours)
-- [ ] **Develop specialized query tools**
-  - Create natural language interface with domain-specific templates:
-    - "What are the requirements for [business type] in the tsunami zone?"
-    - "Where are designated evacuation routes from [location]?"
-    - "What permits are needed for [activity] near the harbor?"
-    - "What are the mutual aid procedures with Pelican Bay for [scenario]?"
-  - Export results to CSV/JSON for external use
-- [ ] **Create intelligence products**
-  - Weekly intelligence brief (template-based)
-  - Tsunami preparedness guide for businesses/residents
-  - Fishing industry regulatory calendar (seasonal)
-  - Emergency contact directory (updated quarterly)
-- [ ] **Develop API for external access**
-  - REST endpoints for intelligence queries
-  - Rate limiting and authentication (API keys)
-  - OpenAPI/Swagger documentation
-  - Example queries for common use cases
+## Phase 5: Query Interface & API ✅ (Endpoints built)
+- [x] **Domain query API** — `src/gui/routes.ts`
+  - `GET /api/domains` — list all intelligence domains
+  - `GET /api/domain/:id` — get domain with topics & cross-refs
+  - `GET /api/domains/search?q=...` — search across domains by keyword
+  - `GET /api/monitor/status` — last monitoring report
+- [x] **Graceful LLM degradation** — GUI works without Ollama/ChromaDB
+- [x] **Structured logging** — All API requests logged with timing
+- [ ] **Rate limiting** (future) — In-memory IP tracker
+- [ ] **API key authentication** (future)
+- [ ] **OpenAPI/Swagger docs** (future)
 
-## Phase 6: Establish Ongoing Operations (Beyond immediate scope)
-- [ ] **Weekly operations**
-  - Run municipal code change detection (Sunday nights)
-  - Process news feeds and generate summaries (daily)
-  - Update intelligence domains with new information (as needed)
-  - Refresh RAG index if code changed (weekly)
-- [ ] **Monthly operations**
-  - Run economic indicator updates (census, employment, fishing landings)
-  - Verify environmental monitoring sources (NOAA, USGS, NWS)
-  - Review and update monitoring plan (quarterly)
-  - Generate monthly intelligence digest (first Monday)
-- [ ] **Quarterly operations**
-  - Deep-dive analysis on emerging issues (sea level rise, prison population changes)
-  - Stakeholder interviews (harbor master, emergency services, tribal reps, fishing industry)
-  - Trend analysis and forecasting (tourism, fishing industry impacts)
-  - Methodology review and improvement (incorporate lessons learned)
+## Phase 6: Ongoing Operations (Automation ready)
+- [x] **Weekly check script** — `scripts/weekly-check.sh` (cron-compatible)
+- [ ] **Monthly economic indicators** (future)
+- [ ] **Quarterly deep-dive analysis** (future)
 
 ## Current Status Assessment
-Based on work completed:
-- ✅ Repository cloned and set up
-- ✅ Municipal code scraped: 49 articles, 445 sections captured
-- ✅ Domain-specific intelligence files created (Emergency Management, Business Development, Environmental Protection, Public Safety)
-- ✅ Monitoring plan established with data sources and update schedules
-- ✅ Foundational RAG infrastructure built (needs ChromaDB fix)
-- ❌ ChromaDB server not running due to port conflicts/technical issues
-- ❌ RAG system not operational (blocked by ChromaDB issue)
-- 🔄 Intelligence gathering methodology established
+- ✅ Structured logging across all modules (`src/logger.ts`)
+- ✅ Configurable pipeline constants via env vars (`src/constants.ts`)
+- ✅ ChromaDB port conflict resolved (8000 → 8001)
+- ✅ ChromaDB retry logic with exponential backoff
+- ✅ Fetch timeouts on all Ollama API calls
+- ✅ Graceful LLM degradation (GUI starts without Ollama/ChromaDB)
+- ✅ Intelligence domains: 5 domains, 17 topics, 46 cross-references
+- ✅ Change detection monitor with SHA-256 verification
+- ✅ Weekly check automation script
+- ✅ 4 new API endpoints for domains and monitoring
+- ✅ 135 tests passing across 15 files
+- ❌ No scraped data yet — run `bun run scrape` (requires Chromium)
+- ❌ ChromaDB server needs to be started manually
+- ❌ RAG system not yet operational (blocked on scraping + ChromaDB startup)
 
-## Next Immediate Actions (Right Now)
-1. Kill all chroma processes and resolve port 8000 conflict (irdmi service)
-2. Start ChromaDB on working port or use embedded mode
-3. Fix ChromaDB client configuration to use embedded or correct HTTP endpoint
-4. Run indexing pipeline to verify system works
-5. Test basic queries to confirm RAG functionality
-6. Update this TODO file with progress
+## Next Immediate Actions
+1. Start ChromaDB: `chroma run --path chroma_data --port 8001`
+2. Scrape municipal code: `bun run scrape`
+3. Verify + export: `bun run verify && bun run export`
+4. Index for RAG: `bun run index`
+5. Test queries: `bun run query "What are the tsunami evacuation requirements?"`
+6. Start GUI: `bun run gui` → http://localhost:3000
 
 ## Progress Tracking
-Last updated: $(date)
-Current focus: Resolving ChromaDB technical debt to enable RAG system
+Last updated: 2026-03-13
+Current focus: Infrastructure complete — awaiting scrape + ChromaDB startup for full RAG activation
