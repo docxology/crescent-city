@@ -113,9 +113,8 @@ export function apiKeyMiddleware() {
       return null;
     }
 
-    // Check for API key in header
+// Check for API key in header
     const apiKey = req.headers.get("x-api-key");
-
     // Also check query parameter as fallback
     const queryApiKey = new URL(req.url).searchParams.get("api_key");
     const keyToCheck = apiKey || queryApiKey;

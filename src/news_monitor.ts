@@ -13,9 +13,10 @@ const logger = createLogger('news_monitor');
 
 // RSS feed URLs for local news sources
 const NEWS_FEEDS = {
-  'Times-Standard': 'https://www.times-standard.com/news/rss.xml',
+  'Times-Standard': 'https://www.times-standard.com/feed/',
+  'North Coast Journal': 'https://www.northcoastjournal.com/feed/',
   'Lost Coast Outpost': 'https://lostcoastoutpost.com/feed',
-  'Humboldt Times': 'https://www.humboldtcountynews.com/feed' // Placeholder - replace with actual RSS URL
+  'KMUD Radio': 'https://kmud.org/feed/'
 };
 
 // Keywords for filtering relevant Crescent City news
