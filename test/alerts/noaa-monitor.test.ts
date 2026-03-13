@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'bun:test';
-import { fetchNoaaAlerts, saveNoaaAlerts, monitorNoaaAlerts } from '../src/alerts/noaa-monitor.ts';
-import { createLogger } from '../src/logger.ts';
+import { fetchNoaaAlerts, saveNoaaAlerts, monitorNoaaAlerts } from '../../src/alerts/noaa-monitor.ts';
+import { createLogger } from '../../src/logger.ts';
 
 // Mock the logger
 vi.mock('../src/logger.ts', () => ({
@@ -129,7 +129,7 @@ describe('NOAA Monitor', () => {
   describe('monitorNoaaAlerts', () => {
     it('should run the monitoring process', async () => {
       // Mock fetchNoaaAlerts to return some alerts
-      vi.spyOn(require('../src/alerts/noaa-monitor.ts'), 'fetchNoaaAlerts').mockResolvedValue([
+      vi.spyOn(require('../../src/alerts/noaa-monitor.ts'), 'fetchNoaaAlerts').mockResolvedValue([
         {
           id: 'test-alert',
           title: 'Test Alert',
