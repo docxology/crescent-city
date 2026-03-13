@@ -16,6 +16,7 @@ const NEWS_FEEDS = {
   'Times-Standard': 'https://www.times-standard.com/feed/',
   'North Coast Journal': 'https://www.northcoastjournal.com/feed/',
   'Lost Coast Outpost': 'https://lostcoastoutpost.com/feed',
+  'Humboldt Times': 'https://www.humboldtnews.com/rss.xml', // Corrected Humboldt Times RSS feed
   'KMUD Radio': 'https://kmud.org/feed/'
 };
 
@@ -49,7 +50,11 @@ export async function fetchRSSFeed(url: string, sourceName: string): Promise<Arr
   try {
     logger.info(`Fetching RSS feed from ${sourceName}`, { url });
     
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'CrescentCityIntelligenceBot/1.0 (+https://github.com/docxology/crescent-city)'
+      }
+    });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
