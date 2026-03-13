@@ -245,6 +245,9 @@ const MEETING_KEYWORDS = [
 async function fetchGovMeetings(url: string, sourceName: string): Promise<Array<{{title: string, link: string, date: string, content: string}}>> {{
   try {{
     logger.info(`Fetching government meetings from ${{sourceName}}`, {{ url }});
+    }
+}
+            ''')
     
     const response = await fetch(url);
     if (!response.ok) {{
@@ -365,8 +368,7 @@ async function monitorGovMeetings(): Promise<void> {{
   }} else {{
     logger.warn('No government meeting items found in this cycle');
   }}
-  
-  }}
+  });
 }
 
 // Run the monitoring if this script is executed directly
@@ -375,7 +377,7 @@ if (import.meta.main) {
     logger.error('Government meeting tracking failed', { error: error.message });
   });
 }
-    
+            ''')
     # Now, actually run the news monitor to see if it works and generate output
     log(f"   Running the news monitor script...")
     result = run_command(f'{bun_path} run {news_script_path}', timeout=30)
