@@ -15,8 +15,11 @@
     "status": "bun run src/llm/index.ts status"
   },
   "dependencies": {
-    "chromadb": "^1.9.2",
-    "playwright": "^1.55.0"
+    "@chroma-core/default-embed": "^0.1.9",
+    "chroma": "^0.0.1",
+    "chromadb": "^3.3.3",
+    "playwright": "^1.55.0",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "bun-types": "^1.2.4"
