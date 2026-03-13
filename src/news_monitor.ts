@@ -2,7 +2,7 @@
 /**
  * News monitoring automation for Crescent City.
  * Fetches RSS feeds from Times-Standard and Lost Coast Outpost.
- * Last run: 2026-03-13T12:46:32.077Z
+ * Last run: 2026-03-13T13:21:48.051Z
  */
 import { createLogger } from './logger.js';
 import { computeSha256, htmlToText } from './utils.js';
