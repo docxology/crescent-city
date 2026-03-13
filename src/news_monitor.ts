@@ -2,7 +2,7 @@
 /**
  * News monitoring automation for Crescent City.
  * Fetches RSS feeds from Times-Standard and Lost Coast Outpost.
- * Last run: 2026-03-13T09:10:00.000Z
+ * Last run: 2026-03-13T09:15:00.000Z
  */
 import { logger } from './logger.js';
 import { computeSha256, htmlToText } from './utils.js';
@@ -163,7 +163,7 @@ async function monitorNews(): Promise<void> {
     await saveNewsItems(allItems);
     logger.info(`News monitoring complete: ${allItems.length} relevant items found`);
     
-    # Log the top 3 items for immediate visibility
+    // Log the top 3 items for immediate visibility
     for (let i = 0; i < Math.min(3, allItems.length); i++) {
       const item = allItems[i];
       logger.info(`Top news item ${i+1}:`, {
