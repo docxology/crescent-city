@@ -101,7 +101,8 @@ def main():
     # 4. Work on the news monitoring automation
     log("4. Working on news monitoring automation...")
     news_script_path = 'src/news_monitor.ts'
-    
+    gov_script_path = 'src/gov_meeting_monitor.ts'
+
     # Update the timestamp in the news monitor script
     if os.path.exists(news_script_path):
         log(f"   Updating timestamp in {news_script_path}")
@@ -370,21 +371,21 @@ async function monitorGovMeetings(): Promise<void> {
 
         with open(gov_script_path, 'w') as f:
             f.write(content)
-    # Now, actually run the news monitor to see if it works and generate output
-    log(f"   Running the news monitor script...")
-    result = run_command(f'{bun_path} run {news_script_path}', timeout=30)
-    log(f"   News monitor exit code: {result.returncode}")
+    # Now, actually run the gov meeting monitor to see if it works and generate output
+    log(f"   Running the gov meeting monitor script...")
+    result = run_command(f'{bun_path} run {gov_script_path}', timeout=30)
+    log(f"   Gov meeting monitor exit code: {result.returncode}")
     if result.returncode == 0:
-        log("   News monitor: SUCCESS")
+        log("   Gov meeting monitor: SUCCESS")
         if result.stdout.strip():
             # Log a snippet of the output
             snippet = result.stdout.strip()[:200]
             log(f"   Output snippet: {snippet}")
     else:
-        log("   News monitor: FAILED or encountered expected errors (like network issues)")
+        log("   Gov meeting monitor: FAILED or encountered expected errors (like network issues)")
         if result.stderr.strip():
             # Don't log the full stderr if it's too long, just the first few lines
-            stderr_lines = result.stderr.strip().split('\n')
+            stderr_lines = result.stderr.strip().split('\\n')
             log(f"   Stderr (first 3 lines): {chr(10).join(stderr_lines[:3])}")
     
     # 5. Commit and push any changes
