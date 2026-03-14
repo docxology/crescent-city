@@ -123,13 +123,18 @@ def main():
             )
         if new_content == content:
             # Fallback: replace the line that contains "Last run:"
-            lines = content.split('\\n')
+            lines = content.split('\n')
             for i, line in enumerate(lines):
                 if 'Last run:' in line:
-                    lines[i] = f' * Last run: {datetime.now().isoformat()}'
+                    # Preserve leading whitespace and update timestamp
+                    match = re.match(r'(\s*)\* Last run:.*', line)
+                    if match:
+                        whitespace = match.group(1)
+                        lines[i] = f'{whitespace} * Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
+                    else:
+                        lines[i] = f' * Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
                     break
-            new_content = '\\n'.join(lines)
-        
+            new_content = '\n'.join(lines)
         with open(news_script_path, 'w') as f:
             f.write(new_content)
         log(f"   Updated {news_script_path} with new timestamp")
@@ -189,13 +194,18 @@ logger.info('News monitor script executed. This is a placeholder for RSS feed pr
             )
         if new_content == content:
             # Fallback: replace the line that contains "Last run:"
-            lines = content.split('\\n')
+            lines = content.split('\n')
             for i, line in enumerate(lines):
                 if 'Last run:' in line:
-                    lines[i] = f' * Last run: {datetime.now().isoformat()}'
+                    # Preserve leading whitespace and update timestamp
+                    match = re.match(r'(\s*)\* Last run:.*', line)
+                    if match:
+                        whitespace = match.group(1)
+                        lines[i] = f'{whitespace} * Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
+                    else:
+                        lines[i] = f' * Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
                     break
-            new_content = '\\n'.join(lines)
-        
+            new_content = '\n'.join(lines)
         with open(gov_script_path, 'w') as f:
             f.write(new_content)
         log(f"   Updated {gov_script_path} with new timestamp")
