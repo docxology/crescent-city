@@ -1,7 +1,10 @@
 === Crescent City Intelligence System - 6 Hour Summary ===
-Generated at: 2026-03-14 03:43:18
+Generated at: 2026-03-14 04:28:10
 
-Recent commits (40):
+Recent commits (37):
+  • 9439f48 Work iteration: 2026-03-14 04:26:32 - Progress on intelligence system (NewTester)
+  • ec90830 Work iteration: 2026-03-14 04:25:21 - Progress on intelligence system (NewTester)
+  • 10c008b chore: fix API middleware syntax errors and restore enhanced news monitoring (NewTester)
   • 574e27d Work iteration: 2026-03-14 03:36:19 - Progress on intelligence system (NewTester)
   • 766a1cb Work iteration: 2026-03-14 03:35:41 - Progress on intelligence system (NewTester)
   • c5c3ee6 Work iteration: 2026-03-14 03:32:51 - Progress on intelligence system (NewTester)
@@ -36,22 +39,17 @@ Recent commits (40):
   • d6b340e Work iteration: 2026-03-13 22:57:55 - Progress on intelligence system (NewTester)
   • 04824a2 Work iteration: 2026-03-13 22:55:18 - Progress on intelligence system (NewTester)
   • 3c2feb2 Work iteration: 2026-03-13 22:42:58 - Progress on intelligence system (NewTester)
-  • 948ad65 Work iteration: 2026-03-13 22:27:27 - Progress on intelligence system (NewTester)
-  • 4590607 Work iteration: 2026-03-13 22:09:34 - Progress on intelligence system (NewTester)
-  • 197bf16 Work iteration: 2026-03-13 22:06:57 - Progress on intelligence system (NewTester)
-  • 48d8ac8 Work iteration: 2026-03-13 22:05:41 - Progress on intelligence system (NewTester)
-  • 79f77c5 Work iteration: 2026-03-13 22:04:26 - Progress on intelligence system (NewTester)
-  • 980e6a6 Work iteration: 2026-03-13 21:59:12 - Progress on intelligence system (NewTester)
 
-Changed files (3):
-  TypeScript files: src/gov_meeting_monitor.ts, src/news_monitor.ts
-  Other: src/news_monitor.ts.backup
+Changed files (4):
+  TypeScript files: src/api/middleware.ts, src/gov_meeting_monitor.ts, src/news_monitor.ts
+  Documentation: summary_output.txt
 
 
 System Status:
   ✅ ChromaDB running on port 8001 (v2 API)
   ✅ Ollama running with required models
   ✅ News monitoring script exists
+  ✅ Gov meeting monitoring script exists
   📋 TODO progress: 5/13 items completed
 
 === End Summary ===
