@@ -3,4 +3,4 @@
  * News monitoring automation for Crescent City.
  * Fetches RSS feeds from Times-Standard, Lost Coast Outpost, and Humboldt Times.
  * Uses proper XML parsing for reliability.
- * Last run: 2026-03-14T00:50:12.047Z\n */
+ * Last run: 2026-03-14T01:07:22.422Z\n */
