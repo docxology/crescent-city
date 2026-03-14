@@ -126,13 +126,8 @@ def main():
             lines = content.split('\n')
             for i, line in enumerate(lines):
                 if 'Last run:' in line:
-                    # Preserve leading whitespace and update timestamp
-                    match = re.match(r'(\s*)\* Last run:.*', line)
-                    if match:
-                        whitespace = match.group(1)
-                        lines[i] = f'{whitespace} * Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
-                    else:
-                        lines[i] = f' * Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
+                    prefix = line.split('Last run:')[0]
+                    lines[i] = f'{prefix}Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
                     break
             new_content = '\n'.join(lines)
         with open(news_script_path, 'w') as f:
@@ -197,13 +192,8 @@ logger.info('News monitor script executed. This is a placeholder for RSS feed pr
             lines = content.split('\n')
             for i, line in enumerate(lines):
                 if 'Last run:' in line:
-                    # Preserve leading whitespace and update timestamp
-                    match = re.match(r'(\s*)\* Last run:.*', line)
-                    if match:
-                        whitespace = match.group(1)
-                        lines[i] = f'{whitespace} * Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
-                    else:
-                        lines[i] = f' * Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
+                    prefix = line.split('Last run:')[0]
+                    lines[i] = f'{prefix}Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
                     break
             new_content = '\n'.join(lines)
         with open(gov_script_path, 'w') as f:
