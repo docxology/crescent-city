@@ -1,10 +1,9 @@
 #!/usr/bin/env bun
 /**
  * News monitoring automation for Crescent City.
- * Fetches RSS feeds from multiple local news sources.
+ * Fetches RSS feeds from Times-Standard, Lost Coast Outpost, and Humboldt Times.
  * Uses proper XML parsing for reliability.
- * Enhanced with more sources, better deduplication, and improved keyword matching.
- * Last run: 2026-03-13T22:48:30.000Z
+ * Last run: 2026-03-13T14:58:13.817Z
  */
 import { createLogger } from './logger.js';
 import { computeSha256, htmlToText } from './utils.js';
@@ -12,23 +11,15 @@ import { DOMParser } from '@xmldom/xmldom';
 
 const logger = createLogger('news_monitor');
 
-// RSS feed URLs for local news sources - EXPANDED
+// RSS feed URLs for local news sources
 const NEWS_FEEDS = {
   'Times-Standard': 'https://www.times-standard.com/feed/',
   'North Coast Journal': 'https://www.northcoastjournal.com/feed/',
   'Lost Coast Outpost': 'https://lostcoastoutpost.com/feed',
-  'KMUD Radio': 'https://kmud.org/feed/',
-  'Humboldt Times': 'https://www.humboldt.com/feed/',
-  'Del Norte Triplicate': 'https://www.delnortetriplicate.com/feed/',
-  'CalFire News': 'https://www.fire.ca.gov/media/rss/newsroom',
-  'NOAA News': 'https://www.noaa.gov/news/rss.xml',
-  'FEMA News': 'https://www.fema.gov/news-release/rss.xml',
-  'Crescent City Harbor District': 'https://crescentcityharbor.org/feed/',
-  'City of Crescent City': 'https://www.cityofcrescentcity.org/feed/',
-  'Del Norte County': 'https://www.del norte.ca.gov/feed/'  // Note: may need adjustment
+  'KMUD Radio': 'https://kmud.org/feed/'
 };
 
-// Enhanced keywords for filtering relevant Crescent City news
+// Keywords for filtering relevant Crescent City news
 const CRESCENT_CITY_KEYWORDS = [
   'Crescent City',
   'Del Norte',
@@ -48,36 +39,7 @@ const CRESCENT_CITY_KEYWORDS = [
   'planning commission',
   'harbor commission',
   'NOAA',
-  'USGS',
-  'evacuation route',
-  'shelter',
-  'road closure',
-  'power outage',
-  'flood',
-  'high surf',
-  'coastal flood',
-  'tsunami warning',
-  'tsunami advisory',
-  'earthquake alert',
-  'red flag warning',
-  'fire weather',
-  'smoke',
-  'air quality',
-  'mandatory evacuation',
-  'voluntary evacuation',
-  'road open',
-  'road closed',
-  'detour',
-  'Hwy 101',
-  'Highway 101',
-  'US 101',
-  'Coast Guard',
-  'Coast Guard Sector Humboldt Bay',
-  'National Weather Service',
-  'NWS',
-  'weather warning',
-  'weather watch',
-  'weather advisory'
+  'USGS'
 ];
 
 /**
@@ -87,12 +49,7 @@ export async function fetchRSSFeed(url: string, sourceName: string): Promise<Arr
   try {
     logger.info(`Fetching RSS feed from ${sourceName}`, { url });
     
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'CrescentCityIntelligenceMonitor/1.0 (https://github.com/yourusername/crescent-city-intelligence)'
-      }
-    });
-    
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -121,7 +78,6 @@ export async function fetchRSSFeed(url: string, sourceName: string): Promise<Arr
       const linkElement = item.getElementsByTagName("link")[0];
       const pubDateElement = item.getElementsByTagName("pubDate")[0];
       const descriptionElement = item.getElementsByTagName("description")[0];
-      const contentElement = item.getElementsByTagName("content:encoded")[0] || item.getElementsByTagName("encoded")[0];
       
       if (titleElement && linkElement) {
         const title = titleElement.textContent?.replace(/<[^>]*>/g, '').trim() || '';
@@ -134,18 +90,13 @@ export async function fetchRSSFeed(url: string, sourceName: string): Promise<Arr
         linksInFeed.add(link);
         
         const pubDate = pubDateElement ? pubDateElement.textContent?.trim() || '' : '';
-        // Prefer content:encoded over description, fallback to description
-        let content = '';
-        if (contentElement) {
-          content = htmlToText(contentElement.textContent || '').substring(0, 800);
-        } else if (descriptionElement) {
-          content = htmlToText(descriptionElement.textContent || '').substring(0, 800);
-        }
+        const description = descriptionElement ? 
+          htmlToText(descriptionElement.textContent || '').substring(0, 500) : '';
         
         // Check if article is relevant to Crescent City
         const isRelevant = CRESCENT_CITY_KEYWORDS.some(keyword => 
           title.toLowerCase().includes(keyword.toLowerCase()) || 
-          content.toLowerCase().includes(keyword.toLowerCase())
+          description.toLowerCase().includes(keyword.toLowerCase())
         );
         
         if (isRelevant) {
@@ -153,7 +104,7 @@ export async function fetchRSSFeed(url: string, sourceName: string): Promise<Arr
             title,
             link,
             pubDate,
-            content
+            content: description
           });
         }
       }
@@ -266,4 +217,3 @@ if (import.meta.main) {
     process.exit(1);
   });
 }
-EOF; __hermes_rc=$?; printf '__HERMES_FENCE_a9f7b3__'; exit $__hermes_rc

@@ -2,12 +2,10 @@
 /**
  * Government meeting tracking automation for Crescent City.
  * Tracks agendas and minutes for city council, planning commission, and harbor commission.
- * Enhanced with proper HTML parsing using cheerio, improved keyword matching, and better date extraction.
- * Last run: 2026-03-13T22:48:31.000Z
+ * Last run: 2026-03-13T22:42:57.230Z
  */
 import { createLogger } from './logger.js';
 import { computeSha256, htmlToText } from './utils.js';
-import cheerio from 'cheerio';
 
 const logger = createLogger('gov_meeting_monitor');
 
@@ -18,7 +16,7 @@ const GOV_SOURCES = {
   'Harbor Commission': 'https://crescentcity.org/government/harbor-commission/agendas'
 };
 
-// Enhanced keywords for filtering relevant meeting items
+// Keywords for filtering relevant meeting items
 const MEETING_KEYWORDS = [
   'agenda',
   'minutes',
@@ -35,108 +33,67 @@ const MEETING_KEYWORDS = [
   'permit',
   'development',
   'infrastructure',
-  'safety',
-  'public hearing',
-  'workshop',
-  'special meeting',
-  'regular meeting',
-  'closed session',
-  'consent calendar',
-  'action item',
-  'report',
-  'update',
-  'presentation'
+  'safety'
 ];
 
 /**
- * Fetch and parse a government meeting page using cheerio for proper HTML parsing
+ * Fetch and parse a government meeting page
  */
 async function fetchGovMeetings(url: string, sourceName: string): Promise<Array<{title: string, link: string, date: string, content: string}>> {
   try {
     logger.info(`Fetching government meetings from ${sourceName}`, { url });
     
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'CrescentCityIntelligenceMonitor/1.0 (https://github.com/yourusername/crescent-city-intelligence)'
-      }
-    });
-    
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
     const htmlText = await response.text();
     
-    // Load HTML with cheerio
-    const $ = cheerio.load(htmlText);
-    
-    const items: Array<{title: string, link: string, date: string, content: string}> = [];
+    // Simple regex-based extraction for demo purposes
+    // In production, use a proper HTML parser like @xmldom/xmldom or cheerio
+    const items = [];
     const seenLinks = new Set<string>();
     
-    // Find all links that might be meeting-related
-    $('a').each((_, element) => {
-      const linkElement = $(element);
-      const href = linkElement.attr('href');
-      const title = linkElement.text().trim();
-      
-      if (!href || !title) {
-        return;
-      }
-      
-      // Normalize the URL
-      let fullLink: string;
-      try {
-        fullLink = new URL(href, url).toString();
-      } catch (e) {
-        // Skip invalid URLs
-        return;
-      }
+    // Look for common patterns in meeting pages
+    // Pattern 1: Links with meeting-related text
+    const linkRegex = /<a[^>]*href=["']([^"']*?)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    let match;
+    
+    while ((match = linkRegex.exec(htmlText)) !== null) {
+      const link = match[1];
+      const title = match[2].replace(/<[^>]*>/g, '').trim();
       
       // Skip if we've already seen this link
-      if (seenLinks.has(fullLink)) {
-        return;
+      if (seenLinks.has(link)) {
+        continue;
       }
-      seenLinks.add(fullLink);
+      seenLinks.add(link);
       
       // Check if the title contains meeting keywords
       const isMeetingRelated = MEETING_KEYWORDS.some(keyword => 
         title.toLowerCase().includes(keyword.toLowerCase())
       );
       
-      if (isMeetingRelated) {
-        // Try to extract a date from the title or nearby text
-        let date = '';
-        
-        // Look for date patterns in the title
-        const dateMatch = title.match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b/);
-        if (dateMatch) {
-          date = dateMatch[0];
-        } else {
-          // Look for date in the surrounding text (parent element or previous siblings)
-          const parentText = linkElement.parent().text() || '';
-          const dateMatchInParent = parentText.match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}\b/);
-          if (dateMatchInParent) {
-            date = dateMatchInParent[0];
-          }
-        }
+      if (isMeetingRelated && title && link) {
+        // Try to extract a date from nearby text
+        const dateMatch = htmlText.substring(Math.max(0, match.index - 200), match.index + 200)
+          .match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2}\b/);
+        const date = dateMatch ? dateMatch[0] : '';
         
         // Get some surrounding content for context
-        // We'll look at the parent element's text for more context
-        const parent = linkElement.parent();
-        let content = parent.text().trim();
-        // Limit content length
-        if (content.length > 1000) {
-          content = content.substring(0, 1000) + '...';
-        }
+        const contentStart = Math.max(0, match.index - 100);
+        const contentEnd = Math.min(htmlText.length, match.index + 300);
+        const content = htmlToText(htmlText.substring(contentStart, contentEnd)).substring(0, 500);
         
         items.push({
           title,
-          link: fullLink,
+          link: link.startsWith('http') ? link : new URL(link, url).toString(),
           date,
-          content: htmlToText(content) // Clean HTML tags
+          content
         });
       }
-    });
+    }
     
     logger.info(`Found ${items.length} meeting-related items from ${sourceName}`, { count: items.length });
     return items;
@@ -245,4 +202,3 @@ if (import.meta.main) {
     process.exit(1);
   });
 }
-EOF; __hermes_rc=$?; printf '__HERMES_FENCE_a9f7b3__'; exit $__hermes_rc
