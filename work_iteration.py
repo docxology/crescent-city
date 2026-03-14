@@ -123,12 +123,12 @@ def main():
             )
         if new_content == content:
             # Fallback: replace the line that contains "Last run:"
-            lines = content.split('\n')
+            lines = content.split('\\n')
             for i, line in enumerate(lines):
                 if 'Last run:' in line:
                     lines[i] = f' * Last run: {datetime.now().isoformat()}'
                     break
-            new_content = '\n'.join(lines)
+            new_content = '\\n'.join(lines)
         
         with open(news_script_path, 'w') as f:
             f.write(new_content)
@@ -359,14 +359,14 @@ async function monitorGovMeetings(): Promise<void> {
   }
 };
 '''
-
-        # Insert the timestamp in the comment
-        lines = base_content.split('\\\\n')
-        for i, line in enumerate(lines):
-            if 'Last run:' in line:
-                lines[i] = f' * Last run: {datetime.now().isoformat()}'
-                break
-        content = '\\\\n'.join(lines)
+        if new_content == content:
+            # Fallback: replace the line that contains "Last run:"
+            lines = content.split('\\n')
+            for i, line in enumerate(lines):
+                if 'Last run:' in line:
+                    lines[i] = f' * Last run: {datetime.now().isoformat()}'
+                    break
+            new_content = '\\n'.join(lines)
 
         with open(gov_script_path, 'w') as f:
             f.write(content)
