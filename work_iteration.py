@@ -108,17 +108,17 @@ def main():
         log(f"   Updating timestamp in {news_script_path}")
         with open(news_script_path, 'r') as f:
             content = f.read()
-        # Replace the Last run timestamp in the comment
+        # Replace the Last run timestamp in the comment and ensure comment is closed
         new_content = re.sub(
-            r'\\* Last run: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z',
-            f'* Last run: {datetime.now().isoformat(timespec="milliseconds")}Z',
+            r'(\\* Last run: )\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z',
+            f'\\1{datetime.now().isoformat(timespec="milliseconds")}Z',
             content
         )
         # If the above didn't match (maybe the format is different), try another pattern
         if new_content == content:
             new_content = re.sub(
-                r'\\* Last run: \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}',
-                f'* Last run: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+                r'(\\* Last run: )\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}',
+                f'\\1{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
                 content
             )
         if new_content == content:
@@ -130,6 +130,13 @@ def main():
                     lines[i] = f'{prefix}Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
                     break
             new_content = '\\n'.join(lines)
+        # Ensure the comment is properly closed - if we have an open /** without closing */, add it
+        if new_content.count('/**') > new_content.count('*/'):
+            # Find the last line and add closing */ if needed
+            lines = new_content.split('\\n')
+            if lines and not lines[-1].strip().endswith('*/'):
+                lines.append(' */')
+                new_content = '\\n'.join(lines)
         with open(news_script_path, 'w') as f:
             f.write(new_content)
         log(f"   Updated {news_script_path} with new timestamp")
