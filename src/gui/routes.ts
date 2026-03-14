@@ -315,6 +315,27 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
     }
   }
 
+  // GET /api/docs — Swagger UI
+  if (path === "/api/docs" || path === "/api/docs/") {
+    try {
+      const { readFile } = await import("fs/promises");
+      const { existsSync } = await import("fs");
+      const htmlPath = new URL("./static/docs.html", import.meta.url).pathname;
+      if (!existsSync(htmlPath)) {
+        return json({ error: "Swagger UI not found" }, 404);
+      }
+      const html = await readFile(htmlPath, "utf-8");
+      return new Response(html, {
+        headers: {
+          "Content-Type": "text/html",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    } catch (err: any) {
+      return json({ error: `Failed to serve Swagger UI: ${err.message}` }, 500);
+    }
+  }
+
   return json({ error: "Not found" }, 404);
 }
 

@@ -27,12 +27,12 @@
   - Configure limits: 100 requests/hour per IP for API endpoints
   - Return 429 status with retry-after header when exceeded
   - Exclude internal monitoring systems from limits
-- [ ] **Add API key authentication**
+- [x] **Add API key authentication**
   - Implement optional API key header validation (X-API-Key)
   - Support both header and query parameter authentication
   - Generate and manage API keys via secure storage
   - Log authenticated vs anonymous requests separately
-- [ ] **Generate OpenAPI/Swagger documentation**
+- [x] **Generate OpenAPI/Swagger documentation**
   - Create openapi.yaml defining all API endpoints
   - Include request/response schemas, authentication, and error codes
   - Serve via /api/docs endpoint with Swagger UI

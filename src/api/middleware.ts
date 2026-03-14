@@ -114,7 +114,10 @@ export function apiKeyMiddleware() {
     }
 
     // Check for API key in header
-    const apiKey = req.headers.get("x-api-key");
+    const apiKey = req.headers.get("x-api-key");\n    // Also check query parameter as fallback\n    const queryApiKey = new URL(req.url).searchParams.get("api_key");\n    const keyToCheck = apiKey || queryApiKey;
+    // Also check query parameter as fallback
+    const queryApiKey = new URL(req.url).searchParams.get("api_key");
+    const keyToCheck = apiKey || queryApiKey;
     // Also check query parameter as fallback
     const queryApiKey = new URL(req.url).searchParams.get("api_key");
     const keyToCheck = apiKey || queryApiKey;
@@ -204,4 +207,3 @@ export async function applyMiddleware(req: Request): Promise<Response | null> {
 
   return null; // Continue to route handler
 }
-EOF; __hermes_rc=$?; printf '__HERMES_FENCE_a9f7b3__'; exit $__hermes_rc
