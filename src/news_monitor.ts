@@ -16,8 +16,11 @@ const NEWS_FEEDS = {
   'Times-Standard': 'https://www.times-standard.com/feed/',
   'North Coast Journal': 'https://www.northcoastjournal.com/feed/',
   'Lost Coast Outpost': 'https://lostcoastoutpost.com/feed',
-  'Humboldt Times': 'https://www.humboldtnews.com/rss.xml', // Corrected Humboldt Times RSS feed
-  'KMUD Radio': 'https://kmud.org/feed/'
+  'Humboldt Times': 'https://www.humboldtnews.com/rss.xml',
+  'KMUD Radio': 'https://kmud.org/feed/',
+  'Lost Coast Journal': 'https://www.lostcoastjournal.com/feed/',
+  'Eureka Times-Standard': 'https://www.times-standard.com/feed/',
+  'Mad River Union': 'https://www.madriverunion.com/feed/'
 };
 
 // Keywords for filtering relevant Crescent City news

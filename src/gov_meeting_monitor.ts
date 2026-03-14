@@ -37,7 +37,7 @@ const MEETING_KEYWORDS = [
 ];
 
 /**
- * Fetch and parse a government meeting page
+ * Fetch and parse a government meeting page using proper HTML parsing
  */
 async function fetchGovMeetings(url: string, sourceName: string): Promise<Array<{title: string, link: string, date: string, content: string}>> {
   try {
@@ -50,23 +50,23 @@ async function fetchGovMeetings(url: string, sourceName: string): Promise<Array<
     
     const htmlText = await response.text();
     
-    // Simple regex-based extraction for demo purposes
-    // In production, use a proper HTML parser like @xmldom/xmldom or cheerio
+    // Load HTML with cheerio for proper parsing
+    const $ = load(htmlText);
     const items = [];
     const seenLinks = new Set<string>();
     
-    // Look for common patterns in meeting pages
-    // Pattern 1: Links with meeting-related text
-    const linkRegex = /<a[^>]*href=["']([^"']*?)["'][^>]*>([\s\S]*?)<\/a>/gi;
-    let match;
-    
-    while ((match = linkRegex.exec(htmlText)) !== null) {
-      const link = match[1];
-      const title = match[2].replace(/<[^>]*>/g, '').trim();
+    // Look for common meeting-related elements
+    $('a').each((index, element) => {
+      const link = $(element).attr('href');
+      const title = $(element).text().trim();
+      
+      if (!link || !title) {
+        return;
+      }
       
       // Skip if we've already seen this link
       if (seenLinks.has(link)) {
-        continue;
+        return;
       }
       seenLinks.add(link);
       
@@ -75,25 +75,33 @@ async function fetchGovMeetings(url: string, sourceName: string): Promise<Array<
         title.toLowerCase().includes(keyword.toLowerCase())
       );
       
-      if (isMeetingRelated && title && link) {
-        // Try to extract a date from nearby text
-        const dateMatch = htmlText.substring(Math.max(0, match.index - 200), match.index + 200)
-          .match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2}\b/);
-        const date = dateMatch ? dateMatch[0] : '';
+      if (isMeetingRelated) {
+        // Try to extract a date from nearby text or attributes
+        let date = '';
+        // Look for date in the element itself or nearby elements
+        const dateText = $(element).text() + ' ' + $(element).parent().text() + ' ' + $(element).next().text();
+        const dateMatch = dateText.match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b\d{4}[\-\/]\d{1,2}[\-\/]\d{1,2}\b/);
+        if (dateMatch) {
+          date = dateMatch[0];
+        }
         
         // Get some surrounding content for context
-        const contentStart = Math.max(0, match.index - 100);
-        const contentEnd = Math.min(htmlText.length, match.index + 300);
-        const content = htmlToText(htmlText.substring(contentStart, contentEnd)).substring(0, 500);
+        const parentHtml = $(element).parent().html() ?? '';
+        const contentStart = Math.max(0, parentHtml.indexOf(title) - 100);
+        const contentEnd = Math.min(parentHtml.length, contentStart + 300);
+        const content = htmlToText(parentHtml.substring(contentStart, contentEnd)).substring(0, 500);
+        
+        // Make link absolute if needed
+        const absoluteLink = link.startsWith('http') ? link : new URL(link, url).toString();
         
         items.push({
           title,
-          link: link.startsWith('http') ? link : new URL(link, url).toString(),
+          link: absoluteLink,
           date,
           content
         });
       }
-    }
+    });
     
     logger.info(`Found ${items.length} meeting-related items from ${sourceName}`, { count: items.length });
     return items;

@@ -3,7 +3,7 @@
 import { handleApiRoute } from "./routes.js";
 import { initSearch } from "./search.js";
 import { createLogger } from "../logger.js";
-import { applyMiddleware } from \"../api/middleware.ts\";
+import { applyMiddleware } from "../api/middleware.ts";
 
 const log = createLogger("gui");
 
