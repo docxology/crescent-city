@@ -1,49 +1,56 @@
 === Crescent City Intelligence System - 6 Hour Summary ===
-Generated at: 2026-03-13 15:46:59
+Generated at: 2026-03-13 21:42:01
 
-Recent commits (30):
+Recent commits (40):
+  • e624398 Work iteration: 2026-03-13 21:41:02 - Progress on intelligence system (NewTester)
+  • c7783ad Work iteration: 2026-03-13 21:37:24 - Progress on intelligence system (NewTester)
+  • 156c1b3 Work iteration: 2026-03-13 21:35:50 - Progress on intelligence system (NewTester)
+  • 0eb20a3 Work iteration: 2026-03-13 21:24:19 - Progress on intelligence system (NewTester)
+  • b89affa Work iteration: 2026-03-13 21:16:08 - Progress on intelligence system (NewTester)
+  • e9c52fd Work iteration: 2026-03-13 20:58:55 - Progress on intelligence system (NewTester)
+  • 7c7e88d Work iteration: 2026-03-13 20:56:25 - Progress on intelligence system (NewTester)
+  • 1de51d3 Work iteration: 2026-03-13 20:38:22 - Progress on intelligence system (NewTester)
+  • d6d623a Work iteration: 2026-03-13 20:36:42 - Progress on intelligence system (NewTester)
+  • c7535c3 Work iteration: 2026-03-13 20:34:01 - Progress on intelligence system (NewTester)
+  • be9b169 Work iteration: 2026-03-13 20:29:15 - Progress on intelligence system (NewTester)
+  • b2e5deb Work iteration: 2026-03-13 20:23:15 - Progress on intelligence system (NewTester)
+  • e823602 Work iteration: 2026-03-13 20:20:38 - Progress on intelligence system (NewTester)
+  • 5f31ce7 Work iteration: 2026-03-13 20:19:23 - Progress on intelligence system (NewTester)
+  • c42f6c6 Work iteration: 2026-03-13 20:17:56 - Progress on intelligence system (NewTester)
+  • 57b04c3 Work iteration: 2026-03-13 20:10:56 - Progress on intelligence system (NewTester)
+  • fbe8d23 Work iteration: 2026-03-13 19:58:59 - Progress on intelligence system (NewTester)
+  • 01fb0c2 Enhance news monitoring with additional sources and improved deduplication; implement proper HTML parsing for government meeting tracking using cheerio; fix API middleware imports in GUI server (NewTester)
+  • 4a6ca4e Work iteration: 2026-03-13 19:14:40 - Progress on intelligence system (NewTester)
+  • eb5b2d4 Work iteration: 2026-03-13 19:08:47 - Progress on intelligence system (NewTester)
+  • bbd2491 Work iteration: 2026-03-13 19:06:25 - Progress on intelligence system (NewTester)
+  • 8694200 Work iteration: 2026-03-13 19:04:17 - Progress on intelligence system (NewTester)
+  • 6ab6210 Work iteration: 2026-03-13 18:44:46 - Progress on intelligence system (NewTester)
+  • ea46941 Work iteration: 2026-03-13 18:43:24 - Progress on intelligence system (NewTester)
+  • 7a5eb15 Work iteration: 2026-03-13 18:40:26 - Progress on intelligence system (NewTester)
+  • c9f3b4b Work iteration: 2026-03-13 18:37:42 - Progress on intelligence system (NewTester)
+  • 621296d Work iteration: 2026-03-13 18:32:53 - Progress on intelligence system (NewTester)
+  • 49fb619 Work iteration: 2026-03-13 17:48:09 - Progress on intelligence system (NewTester)
+  • 1d204a1 Work iteration: 2026-03-13 17:45:43 - Progress on intelligence system (NewTester)
+  • 570c1fe Work iteration: 2026-03-13 17:44:29 - Progress on intelligence system (NewTester)
+  • f6a161d Work iteration: 2026-03-13 17:41:51 - Progress on intelligence system (NewTester)
+  • 9db37b4 Work iteration: 2026-03-13 17:20:13 - Progress on intelligence system (NewTester)
+  • 20139fe Work iteration: 2026-03-13 16:23:13 - Progress on intelligence system (NewTester)
+  • 20ca380 Work iteration: 2026-03-13 16:22:27 - Progress on intelligence system (NewTester)
+  • 57dfa11 Work iteration: 2026-03-13 16:17:54 - Progress on intelligence system (NewTester)
+  • 3ea0c0c Work iteration: 2026-03-13 15:49:06 - Progress on intelligence system (NewTester)
+  • 6d974d3 Work iteration: 2026-03-13 15:48:15 - Progress on intelligence system (NewTester)
   • 86c99ee Work iteration: 2026-03-13 15:46:03 - Progress on intelligence system (NewTester)
   • 37f5c2e Work iteration: 2026-03-13 15:45:07 - Progress on intelligence system (NewTester)
   • ff0a0aa chore: continuous modular improvement (NewTester)
-  • 3bb9d98 Work iteration: 2026-03-13 14:58:16 - Progress on intelligence system (NewTester)
-  • 678cb22 Work iteration: 2026-03-13 14:54:41 - Progress on intelligence system (NewTester)
-  • 2e7e27d Work iteration: 2026-03-13 14:51:44 - Progress on intelligence system (NewTester)
-  • a9b0d4f Work iteration: 2026-03-13 14:49:59 - Progress on intelligence system (NewTester)
-  • cb9f4b2 Work iteration: 2026-03-13 14:48:44 - Progress on intelligence system (NewTester)
-  • 1556ed9 Improve news monitoring with working RSS feeds and fix API middleware syntax (NewTester)
-  • ca85efa Add tests for alert monitoring systems (NOAA, USGS, NWS) (NewTester)
-  • 0e175e8 Work iteration: 2026-03-13 14:04:53 - Progress on intelligence system (NewTester)
-  • 0e914db Work iteration: 2026-03-13 14:00:13 - Progress on intelligence system (NewTester)
-  • 6eb33ec Work iteration: 2026-03-13 13:57:07 - Progress on intelligence system (NewTester)
-  • f2ea9f8 Work iteration: 2026-03-13 13:56:27 - Progress on intelligence system (NewTester)
-  • 783875d Work iteration: 2026-03-13 13:54:35 - Progress on intelligence system (NewTester)
-  • d29b7b5 Work iteration: 2026-03-13 13:53:54 - Progress on intelligence system (NewTester)
-  • 3f7de14 Work iteration: 2026-03-13 13:53:07 - Progress on intelligence system (NewTester)
-  • 9937b0c Work iteration: 2026-03-13 13:47:43 - Progress on intelligence system (NewTester)
-  • 9447056 Work iteration: 2026-03-13 13:29:52 - Progress on intelligence system (NewTester)
-  • b3fac2a Work iteration: 2026-03-13 13:21:50 - Progress on intelligence system (NewTester)
-  • 64cbc77 Work iteration: 2026-03-13 13:08:41 - Progress on intelligence system (NewTester)
-  • fd6c738 Work iteration: 2026-03-13 12:46:35 - Progress on intelligence system (NewTester)
-  • a9840d0 Work iteration: 2026-03-13 12:43:41 - Progress on intelligence system (NewTester)
-  • adf1fa5 Work iteration: 2026-03-13 12:35:03 - Progress on intelligence system (NewTester)
-  • 7128aa0 Test: add test file for pull/push verification (NewTester)
-  • bb62348 Work iteration: 2026-03-13 11:40:38 - Progress on intelligence system (NewTester)
-  • 2915c8a Work iteration: 2026-03-13 11:30:30 - Progress on intelligence system (NewTester)
-  • fde7f75 Work iteration: 2026-03-13 10:57:37 - Progress on intelligence system (NewTester)
-  • 76d6046 Update TODO: clear completed tasks, scope upcoming work on real-time alerts, API enhancements, and monitoring expansion (NewTester)
-  • 9958891 Work iteration: 2026-03-13 10:20:07 - Progress on intelligence system (NewTester)
 
-Changed files (6):
-  TypeScript files: src/api/middleware.ts, src/gov_meeting_monitor.ts, src/news_monitor.ts, test/news_monitor.test.ts
-  Documentation: summary_output.txt
-  Other: src/news_monitor.ts.backup
+Changed files (2):
+  TypeScript files: src/gov_meeting_monitor.ts, src/news_monitor.ts
 
 
 System Status:
   ✅ ChromaDB running on port 8001 (v2 API)
   ✅ Ollama running with required models
   ✅ News monitoring script exists
-  ✅ Gov meeting monitoring script exists
-  📋 TODO progress: 3/13 items completed
+  📋 TODO progress: 5/13 items completed
 
 === End Summary ===
