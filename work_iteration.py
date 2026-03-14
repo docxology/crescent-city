@@ -176,14 +176,14 @@ logger.info('News monitor script executed. This is a placeholder for RSS feed pr
         
         # Replace the Last run timestamp in the comment
         new_content = re.sub(
-            r'\\* Last run: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z',
+            r'\* Last run: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z',
             f'* Last run: {datetime.now().isoformat(timespec="milliseconds")}Z',
             content
         )
         # If the above didn't match (maybe the format is different), try another pattern
         if new_content == content:
             new_content = re.sub(
-                r'\\* Last run: \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}',
+                r'\* Last run: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',
                 f'* Last run: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
                 content
             )
