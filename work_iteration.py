@@ -110,26 +110,26 @@ def main():
             content = f.read()
         # Replace the Last run timestamp in the comment
         new_content = re.sub(
-            r'\* Last run: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z',
+            r'\\* Last run: \\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d+Z',
             f'* Last run: {datetime.now().isoformat(timespec="milliseconds")}Z',
             content
         )
         # If the above didn't match (maybe the format is different), try another pattern
         if new_content == content:
             new_content = re.sub(
-                r'\* Last run: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',
+                r'\\* Last run: \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}',
                 f'* Last run: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
                 content
             )
         if new_content == content:
             # Fallback: replace the line that contains "Last run:"
-            lines = content.split('\n')
+            lines = content.split('\\n')
             for i, line in enumerate(lines):
                 if 'Last run:' in line:
                     prefix = line.split('Last run:')[0]
                     lines[i] = f'{prefix}Last run: {datetime.now().isoformat(timespec="milliseconds")}Z'
                     break
-            new_content = '\n'.join(lines)
+            new_content = '\\n'.join(lines)
         with open(news_script_path, 'w') as f:
             f.write(new_content)
         log(f"   Updated {news_script_path} with new timestamp")
@@ -147,21 +147,21 @@ import { logger } from './logger.js';
 logger.info('News monitor script executed. This is a placeholder for RSS feed processing.');
 ''')
     
-# Now, actually run the government meeting monitor script to see if it works and generate output
-    log(f"   Running the government meeting monitor script...")
-    result = run_command(f'{bun_path} run {gov_script_path}', timeout=30)
-    log(f"   Government meeting monitor exit code: {result.returncode}")
+    # Now, actually run the news monitor script to see if it works and generate output
+    log(f"   Running the news monitor script...")
+    result = run_command(f'{bun_path} run {news_script_path}', timeout=30)
+    log(f"   News monitor exit code: {result.returncode}")
     if result.returncode == 0:
-        log("   Government meeting monitor: SUCCESS")
+        log("   News monitor: SUCCESS")
         if result.stdout.strip():
             # Log a snippet of the output
             snippet = result.stdout.strip()[:200]
             log(f"   Output snippet: {snippet}")
     else:
-        log("   Government meeting monitor: FAILED or encountered expected errors (like network issues)")
+        log("   News monitor: FAILED or encountered expected errors (like network issues)")
         if result.stderr.strip():
             # Don't log the full stderr if it's too long, just the first few lines
-            stderr_lines = result.stderr.strip().split('\n')
+            stderr_lines = result.stderr.strip().split('\\n')
             log(f"   Stderr (first 3 lines): {chr(10).join(stderr_lines[:3])}")
     
     # 4b. Work on government meeting tracking
