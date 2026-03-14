@@ -156,4 +156,51 @@ export function apiKeyMiddleware() {
     logger.debug(`Valid API key used for ${path}`);
     return null; // Auth successful
   };
-};
+}
+
+/**
+ * Request logging middleware
+ */
+export function requestLoggingMiddleware() {
+  return async (req: Request) => {
+    const start = Date.now();
+    const url = new URL(req.url);
+    const method = req.method;
+
+    // Log request
+    logger.info(`${method} ${url.pathname}`, {
+      ip: req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+            req.headers.get("x-real-ip") ||
+            "unknown",
+      userAgent: req.headers.get("user-agent")
+    });
+
+    // Return null to continue processing
+    return null;
+  };
+}
+
+/**
+ * Apply all middleware in order
+ */
+export async function applyMiddleware(req: Request): Promise<Response | null> {
+  const middlewares = [
+    requestLoggingMiddleware(),
+    rateLimitMiddleware(),
+    apiKeyMiddleware()
+  ];
+
+  for (const middleware of middlewares) {
+    const result = await middleware(req);
+    if (result !== null) {
+      // If middleware returned a response, send it immediately
+      if (typeof result === "object" && result !== null && "rateLimitInfo" in result) {
+        // Special case for rate limit info - we'll handle this in the route handler
+        continue;
+      }
+      return result as Response;
+    }
+  }
+
+  return null; // Continue to route handler
+}
