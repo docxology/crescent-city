@@ -147,18 +147,18 @@ import { logger } from './logger.js';
 logger.info('News monitor script executed. This is a placeholder for RSS feed processing.');
 ''')
     
-    # Now, actually run the news monitor to see if it works and generate output
-    log(f"   Running the news monitor script...")
-    result = run_command(f'{bun_path} run {news_script_path}', timeout=30)
-    log(f"   News monitor exit code: {result.returncode}")
+# Now, actually run the government meeting monitor script to see if it works and generate output
+    log(f"   Running the government meeting monitor script...")
+    result = run_command(f'{bun_path} run {gov_script_path}', timeout=30)
+    log(f"   Government meeting monitor exit code: {result.returncode}")
     if result.returncode == 0:
-        log("   News monitor: SUCCESS")
+        log("   Government meeting monitor: SUCCESS")
         if result.stdout.strip():
             # Log a snippet of the output
             snippet = result.stdout.strip()[:200]
             log(f"   Output snippet: {snippet}")
     else:
-        log("   News monitor: FAILED or encountered expected errors (like network issues)")
+        log("   Government meeting monitor: FAILED or encountered expected errors (like network issues)")
         if result.stderr.strip():
             # Don't log the full stderr if it's too long, just the first few lines
             stderr_lines = result.stderr.strip().split('\n')
@@ -370,18 +370,18 @@ async function monitorGovMeetings(): Promise<void> {
 
         with open(gov_script_path, 'w') as f:
             f.write(content)
-    # Now, actually run the news monitor to see if it works and generate output
-    log(f"   Running the news monitor script...")
-    result = run_command(f'{bun_path} run {news_script_path}', timeout=30)
-    log(f"   News monitor exit code: {result.returncode}")
+    # Now, actually run the government meeting monitor script to see if it works and generate output
+    log(f"   Running the government meeting monitor script...")
+    result = run_command(f'{bun_path} run {gov_script_path}', timeout=30)
+    log(f"   Government meeting monitor exit code: {result.returncode}")
     if result.returncode == 0:
-        log("   News monitor: SUCCESS")
+        log("   Government meeting monitor: SUCCESS")
         if result.stdout.strip():
             # Log a snippet of the output
             snippet = result.stdout.strip()[:200]
             log(f"   Output snippet: {snippet}")
     else:
-        log("   News monitor: FAILED or encountered expected errors (like network issues)")
+        log("   Government meeting monitor: FAILED or encountered expected errors (like network issues)")
         if result.stderr.strip():
             # Don't log the full stderr if it's too long, just the first few lines
             stderr_lines = result.stderr.strip().split('\n')
