@@ -3,7 +3,7 @@
  * Government meeting tracking automation for Crescent City.
  * Tracks agendas and minutes for city council, planning commission, and harbor commission.
  * Implements proper HTML parsing and change detection for monitoring updates.
- * Last run: 2026-03-14T03:32:50.757Z
+ * Last run: 2026-03-14T03:35:40.818Z
  */
 import { createLogger } from './logger.js';
 import { computeSha256, htmlToText } from './utils.js';
