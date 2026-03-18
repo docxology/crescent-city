@@ -270,6 +270,87 @@ export const domains: IntelligenceDomain[] = [
       },
     ],
   },
+
+  // ─── Housing & Homelessness ───────────────────────────────────
+  {
+    id: "housing-homelessness",
+    name: "Housing & Homelessness",
+    icon: "🏠",
+    description: "Housing policy, emergency shelter, camper/RV regulations, code enforcement, and social services for Crescent City — where a 17% poverty rate and limited affordable stock drive ongoing civic debate.",
+    updatedAt: "2026-03-18",
+    topics: [
+      {
+        name: "Affordable Housing & Zoning",
+        description: "Crescent City's General Plan designates residential zones where affordable multi-family housing can be built. Title 17 (Zoning) governs density, setbacks, ADUs, and special use permits for affordable units.",
+        sources: [
+          { sectionNumber: "§ 17.04", relevance: "Zoning districts and residential use classifications" },
+          { sectionNumber: "§ 17.12", relevance: "Multi-family residential development standards" },
+          { sectionNumber: "§ 17.56", relevance: "Accessory dwelling units (ADUs) — key affordable housing tool" },
+          { sectionNumber: "§ 16.04", relevance: "Subdivision standards affecting housing lot density" },
+        ],
+        externalRefs: [
+          "https://www.hcd.ca.gov/policy-research/affordablehousing",
+          "https://www.calhfa.ca.gov/",
+        ],
+        tags: ["affordable housing", "zoning", "ADU", "density", "residential"],
+      },
+      {
+        name: "Emergency Shelter & Transitional Housing",
+        description: "Municipal authority to site and operate emergency shelters. Del Norte County operates the Cal-Ore Homeless Shelter; city code governs siting of new facilities, variance requests, and compatibility with residential zones.",
+        sources: [
+          { sectionNumber: "§ 8.04", relevance: "Health and Safety — authority for emergency shelter operations" },
+          { sectionNumber: "§ 17.60", relevance: "Special use permits — shelter facilities in residential/commercial zones" },
+          { sectionNumber: "§ 13.04", relevance: "Public services — coordination with county social services" },
+        ],
+        externalRefs: [
+          "https://www.hudexchange.info/homelessness-assistance/",
+          "https://www.caloes.ca.gov/emergency-shelter/",
+        ],
+        tags: ["shelter", "homelessness", "transitional housing", "emergency housing", "social services"],
+      },
+      {
+        name: "Vehicle Dwelling & Camping Regulations",
+        description: "Ordinances regulating overnight vehicle habitation, RV parking, and public camping — a critical issue in Crescent City where homelessness intersects with tourism and harbor operations.",
+        sources: [
+          { sectionNumber: "§ 9.04", relevance: "Public Peace — unlawful camping and loitering" },
+          { sectionNumber: "§ 10.04", relevance: "Vehicles and Traffic — overnight parking restrictions" },
+          { sectionNumber: "§ 12.04", relevance: "Streets and sidewalks — obstruction by vehicles" },
+        ],
+        externalRefs: [
+          "https://www.courts.ca.gov/selfhelp-housing.htm",
+        ],
+        tags: ["camping", "vehicle dwelling", "RV", "parking", "public space"],
+      },
+      {
+        name: "Housing Code Enforcement",
+        description: "Building and habitability standards enforcement. Section 15 governs minimum habitability standards, while the city's code enforcement officers inspect substandard units and can require remediation or condemnation.",
+        sources: [
+          { sectionNumber: "§ 15.04", relevance: "Building code — minimum habitability and structural standards" },
+          { sectionNumber: "§ 15.08", relevance: "Unsafe structures — condemnation and demolition authority" },
+          { sectionNumber: "§ 8.08", relevance: "Nuisance abatement — health hazards in residential properties" },
+        ],
+        externalRefs: [
+          "https://www.hcd.ca.gov/enforcement-and-compliance",
+        ],
+        tags: ["code enforcement", "habitability", "building standards", "substandard housing", "condemnation"],
+      },
+      {
+        name: "Social Services Coordination",
+        description: "City-county coordination for social services, mental health referrals, and CARE Court compliance. Crescent City's high poverty and prison-adjacent population creates significant demand for integrated social services.",
+        sources: [
+          { sectionNumber: "§ 2.04", relevance: "Administration — city-county intergovernmental agreements" },
+          { sectionNumber: "§ 8.04", relevance: "Health and Safety — mental health and welfare authority" },
+          { sectionNumber: "§ 13.12", relevance: "Public services — social services delivery" },
+        ],
+        externalRefs: [
+          "https://www.delnortecounty.gov/departments/health-human-services",
+          "https://www.cdss.ca.gov/",
+          "https://carecourt.ca.gov/",
+        ],
+        tags: ["social services", "mental health", "care court", "poverty", "county coordination"],
+      },
+    ],
+  },
 ];
 
 /** Get a domain by its ID */

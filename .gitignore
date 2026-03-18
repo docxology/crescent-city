@@ -4,3 +4,6 @@ dist/
 chroma_data/
 *.log
 .DS_Store
+summary_output.txt
+__pycache__/
+*.pyc

@@ -5,8 +5,8 @@ Thank you for your interest in contributing! This project is licensed under **CC
 ## Getting Started
 
 1. Fork and clone the repository
-2. Follow [start_here.md](start_here.md) to set up your environment
-3. Run `bun test` to verify everything works (85 tests, 0 failures)
+2. Follow [docs/setup.md](docs/setup.md) to set up your environment
+3. Run `bun test` to verify everything works (186 tests, 0 failures)
 
 ## Development Workflow
 
@@ -34,14 +34,14 @@ bun run gui          # Launch web viewer for manual testing
 - **Paths** — use `src/shared/paths.ts` for all file I/O paths (never hardcode)
 - **Data loading** — use `src/shared/data.ts` to read scraped output
 - **No mocks** — all tests use real methods, no mock/fake/stub implementations
-- **Logging** — use `console.log` with bracketed prefixes (e.g., `[chat]`, `[analytics]`)
+- **Logging** — use `createLogger()` from `src/logger.ts` (never write to `console` directly)
 
 ## Adding Tests
 
 1. Create `tests/<module>.test.ts`
 2. Import functions directly from the source module
 3. Use `describe` / `test` / `expect` from `bun:test`
-4. Focus on pure-logic functions — skip integration modules that require external services
+4. Focus on pure-logic functions — skip integration modules requiring external services
 
 ## Updating Documentation
 
@@ -54,7 +54,7 @@ When modifying source code:
 
 ## Pull Request Guidelines
 
-1. Run `bun test` — all 85 tests must pass
+1. Run `bun test` — all tests must pass
 2. Include tests for new pure-logic functions
 3. Update documentation for any API or behavior changes
 4. Keep commits focused — one logical change per commit

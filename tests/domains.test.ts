@@ -7,8 +7,8 @@ import {
 } from "../src/domains";
 
 describe("Intelligence Domains", () => {
-  test("has exactly 5 domains", () => {
-    expect(domains).toHaveLength(5);
+  test("has exactly 6 domains", () => {
+    expect(domains).toHaveLength(6);
   });
 
   test("each domain has required fields", () => {
@@ -55,7 +55,7 @@ describe("Intelligence Domains", () => {
 
   test("getDomainSummaries returns summaries without topics", () => {
     const summaries = getDomainSummaries();
-    expect(summaries).toHaveLength(5);
+    expect(summaries).toHaveLength(6);
     for (const s of summaries) {
       expect(s.id).toBeTruthy();
       expect(s.name).toBeTruthy();
@@ -63,6 +63,15 @@ describe("Intelligence Domains", () => {
       // Should not include full topics array
       expect((s as any).topics).toBeUndefined();
     }
+  });
+
+  test("housing-homelessness domain exists and has housing topics", () => {
+    const hh = getDomainById("housing-homelessness");
+    expect(hh).toBeDefined();
+    expect(hh!.icon).toBe("🏠");
+    const tags = hh!.topics.flatMap(t => t.tags);
+    expect(tags).toContain("affordable housing");
+    expect(tags).toContain("homelessness");
   });
 
   test("searchDomains finds tsunami-related content", () => {

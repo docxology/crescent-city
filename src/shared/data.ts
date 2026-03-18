@@ -10,6 +10,19 @@ import type {
 } from "../types.js";
 import { paths } from "./paths.js";
 
+// ─── In-process TTL cache ─────────────────────────────────────────
+
+/** Cache entry for all sections (60 second TTL) */
+let _sectionsCache: FlatSection[] | null = null;
+let _sectionsCacheTs = 0;
+const SECTIONS_CACHE_TTL_MS = 60_000; // 60 seconds
+
+/** Invalidate the sections cache (call after re-scrape or export). */
+export function invalidateSectionsCache(): void {
+  _sectionsCache = null;
+  _sectionsCacheTs = 0;
+}
+
 // ─── Core loaders ────────────────────────────────────────────────
 
 /** Load the TOC tree from output/toc.json */
@@ -62,8 +75,13 @@ export async function loadAllArticles(): Promise<ArticlePage[]> {
   return result;
 }
 
-/** Load all sections as a flat array with article metadata attached */
+/** Load all sections as a flat array with article metadata attached.
+ * Cached in-process for 60 seconds to avoid redundant disk reads. */
 export async function loadAllSections(): Promise<FlatSection[]> {
+  const now = Date.now();
+  if (_sectionsCache && now - _sectionsCacheTs < SECTIONS_CACHE_TTL_MS) {
+    return _sectionsCache;
+  }
   const articles = await loadAllArticles();
   const sections: FlatSection[] = [];
   for (const article of articles) {
@@ -80,7 +98,19 @@ export async function loadAllSections(): Promise<FlatSection[]> {
       });
     }
   }
+  _sectionsCache = sections;
+  _sectionsCacheTs = now;
   return sections;
+}
+
+/** Return just the count of all sections without loading text bodies.
+ * Uses the cache if warm, otherwise counts file-by-file. */
+export async function loadAllSectionsCount(): Promise<number> {
+  if (_sectionsCache && Date.now() - _sectionsCacheTs < SECTIONS_CACHE_TTL_MS) {
+    return _sectionsCache.length;
+  }
+  const articles = await loadAllArticles();
+  return articles.reduce((n, a) => n + a.sections.length, 0);
 }
 
 /**

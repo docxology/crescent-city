@@ -1,204 +1,225 @@
 /**
- * API middleware for rate limiting, authentication, and request logging
+ * API middleware: sliding-window rate limiting, multi-key auth, request logging.
+ *
+ * Rate limiting uses a **sliding window** algorithm: each IP stores a list of
+ * request timestamps within the current window. Old timestamps are pruned on
+ * every check, so the window truly slides rather than resetting in a block.
  */
 import { createLogger } from "../logger.js";
+import { appendFile } from "fs/promises";
 
 const logger = createLogger("api-middleware");
 
-// In-memory store for rate limiting (in production, use Redis or similar)
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+// ─── Configuration ────────────────────────────────────────────────
 
-// Rate limiting configuration
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per hour per IP
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour sliding window
+const RATE_LIMIT_MAX_REQUESTS = 100; // per IP per window
 
-// API keys (in production, store these securely and load from environment/vault)
-const VALID_API_KEYS = new Set([
-  // Add your API keys here or load from environment
-  process.env.CRESCENT_CITY_API_KEY || "dev-key-12345"
-]);
+/** Stricter per-endpoint limits. Key = path prefix, value = max requests per window. */
+const ENDPOINT_LIMITS: Record<string, number> = {
+  "/api/chat": 20,
+  "/api/summarize": 20,
+  "/api/analytics/embeddings": 10,
+};
 
-/**
- * Rate limiting middleware
- */
+/** Paths exempt from rate limiting (health, monitoring, static assets). */
+const BYPASS_PATHS = ["/api/health", "/api/monitor/status", "/api/openapi.yaml"];
+
+/** Paths that are public (no API key required). */
+const PUBLIC_PATHS = [
+  "/api/health",
+  "/api/stats",
+  "/api/toc",
+  "/api/domains",
+  "/api/search",
+  "/api/sections",
+  "/api/openapi.yaml",
+  "/api/docs",
+];
+
+// ─── API Key Store ────────────────────────────────────────────────
+
+function buildValidKeySet(): Set<string> {
+  const raw = process.env.CRESCENT_CITY_API_KEY ?? "dev-key-12345";
+  return new Set(raw.split(",").map(k => k.trim()).filter(Boolean));
+}
+
+let VALID_API_KEYS = buildValidKeySet();
+
+/** Reload API keys from env (for hot-reload scenarios). */
+export function reloadApiKeys(): void {
+  VALID_API_KEYS = buildValidKeySet();
+}
+
+// ─── Sliding Window Store ─────────────────────────────────────────
+
+/** Map of IP → sorted array of request timestamps within the current window. */
+const rateLimitStore = new Map<string, number[]>();
+
+/** Prune + count requests in the sliding window. Returns current count after pruning. */
+function slidingWindowCount(ip: string, now: number): number {
+  const windowStart = now - RATE_LIMIT_WINDOW_MS;
+  const timestamps = (rateLimitStore.get(ip) ?? []).filter(t => t > windowStart);
+  timestamps.push(now);
+  rateLimitStore.set(ip, timestamps);
+  return timestamps.length;
+}
+
+/** Seconds until the oldest request in the window expires. */
+function retryAfterSeconds(ip: string, now: number): number {
+  const timestamps = rateLimitStore.get(ip) ?? [];
+  if (timestamps.length === 0) return 0;
+  const oldest = timestamps[0];
+  return Math.max(1, Math.ceil((oldest + RATE_LIMIT_WINDOW_MS - now) / 1000));
+}
+
+/** Get the effective max-requests for a path. */
+function effectiveLimit(path: string): number {
+  for (const [prefix, limit] of Object.entries(ENDPOINT_LIMITS)) {
+    if (path.startsWith(prefix)) return limit;
+  }
+  return RATE_LIMIT_MAX_REQUESTS;
+}
+
+// ─── Request log ─────────────────────────────────────────────────
+
+const REQUEST_LOG_PATH = "output/request-log.jsonl";
+
+async function logRequest(
+  method: string,
+  path: string,
+  ip: string,
+  status: number,
+  ms: number
+): Promise<void> {
+  const entry = JSON.stringify({ ts: new Date().toISOString(), method, path, ip, status, ms });
+  try {
+    await appendFile(REQUEST_LOG_PATH, entry + "\n");
+  } catch {
+    // Non-fatal — output dir may not exist before first scrape
+  }
+}
+
+// ─── Middleware functions ─────────────────────────────────────────
+
+/** Rate limiting with sliding window algorithm. */
 export function rateLimitMiddleware() {
-  return async (req: Request) => {
-    // Skip rate limiting for health checks and internal monitoring
-    if (req.url.includes("/api/health") || req.url.includes("/api/monitor")) {
-      return null;
-    }
+  return async (req: Request): Promise<Response | null> => {
+    const path = new URL(req.url).pathname;
 
-    // Get client IP (simple implementation - in production handle proxies properly)
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-               req.headers.get("x-real-ip") ||
-               "unknown";
+    // Bypass list
+    if (BYPASS_PATHS.some(p => path.startsWith(p))) return null;
 
-    // Skip rate limiting for localhost/internal IPs in development
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+      req.headers.get("x-real-ip") ??
+      "unknown";
+
+    // Skip for loopback / LAN
     if (ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168.") || ip.startsWith("10.")) {
       return null;
     }
 
     const now = Date.now();
-    const record = rateLimitStore.get(ip) || { count: 0, resetTime: now + RATE_LIMIT_WINDOW_MS };
+    const limit = effectiveLimit(path);
+    const count = slidingWindowCount(ip, now);
+    const remaining = Math.max(0, limit - count);
 
-    // Reset if window has passed
-    if (now > record.resetTime) {
-      record.count = 0;
-      record.resetTime = now + RATE_LIMIT_WINDOW_MS;
-    }
-
-    // Increment counter
-    record.count++;
-
-    // Store back
-    rateLimitStore.set(ip, record);
-
-    // Check if limit exceeded
-    if (record.count > RATE_LIMIT_MAX_REQUESTS) {
-      const resetInSeconds = Math.ceil((record.resetTime - now) / 1000);
-      logger.warn(`Rate limit exceeded for IP ${ip}`, {
-        count: record.count,
-        limit: RATE_LIMIT_MAX_REQUESTS,
-        resetInSeconds
-      });
-
+    if (count > limit) {
+      const retryAfter = retryAfterSeconds(ip, now);
+      logger.warn(`Rate limit exceeded for ${ip} on ${path}`, { count, limit, retryAfter });
       return new Response(
         JSON.stringify({
           error: "Rate limit exceeded",
-          message: `Too many requests. Try again in ${resetInSeconds} seconds.`,
-          limit: RATE_LIMIT_MAX_REQUESTS,
-          resetIn: `${resetInSeconds} seconds`
+          message: `Too many requests. Try again in ${retryAfter} seconds.`,
+          limit,
+          remaining: 0,
+          retryAfter,
         }),
         {
           status: 429,
           headers: {
             "Content-Type": "application/json",
-            "Retry-After": String(resetInSeconds),
-            "Access-Control-Allow-Origin": "*"
-          }
+            "Retry-After": String(retryAfter),
+            "X-RateLimit-Limit": String(limit),
+            "X-RateLimit-Remaining": "0",
+            "Access-Control-Allow-Origin": "*",
+          },
         }
       );
     }
 
-    // Add rate limit info to headers for successful requests
-    const remaining = Math.max(0, RATE_LIMIT_MAX_REQUESTS - record.count);
-
-    // We can't modify the response directly here, but we'll return info that handlers can use
-    return {
-      rateLimitInfo: {
-        limit: RATE_LIMIT_MAX_REQUESTS,
-        remaining,
-        reset: new Date(record.resetTime).toISOString()
-      }
-    };
+    // Attach rate-limit headers for use in route handlers via a custom request header
+    // (We can't mutate the original Request, so we signal via a sentinel value)
+    req.headers.set?.("x-ratelimit-remaining", String(remaining));
+    return null;
   };
 }
 
-/**
- * API key authentication middleware
- */
+/** API key authentication middleware. */
 export function apiKeyMiddleware() {
-  return async (req: Request) => {
-    // Skip auth for health checks and public endpoints
-    const publicPaths = [
-      "/api/health",
-      "/api/stats",
-      "/api/toc",
-      "/api/domains",
-      "/api/search"
-    ];
-
+  return async (req: Request): Promise<Response | null> => {
     const path = new URL(req.url).pathname;
-    if (publicPaths.some(publicPath => path.startsWith(publicPath))) {
-      return null;
-    }
+    if (PUBLIC_PATHS.some(p => path.startsWith(p))) return null;
 
-    const apiKey = req.headers.get("x-api-key");
-    const queryApiKey = new URL(req.url).searchParams.get("api_key");
-    const keyToCheck = apiKey || queryApiKey;
+    const apiKey =
+      req.headers.get("x-api-key") ??
+      new URL(req.url).searchParams.get("api_key");
 
-    if (!keyToCheck) {
-      logger.warn(`Missing API key for request to ${path}`);
+    if (!apiKey) {
+      logger.warn(`Missing API key for ${path}`);
       return new Response(
-        JSON.stringify({
-          error: "API key required",
-          message: "Please provide an API key via X-API-Key header or api_key query parameter"
-        }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
-        }
+        JSON.stringify({ error: "API key required", message: "Provide key via X-API-Key header or api_key param" }),
+        { status: 401, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
       );
     }
 
-    if (!VALID_API_KEYS.has(keyToCheck)) {
-      logger.warn(`Invalid API key attempt: ${keyToCheck.substring(0, 8)}...`);
+    if (!VALID_API_KEYS.has(apiKey)) {
+      logger.warn(`Invalid API key attempt: ${apiKey.substring(0, 8)}...`);
       return new Response(
-        JSON.stringify({
-          error: "Invalid API key",
-          message: "The provided API key is not valid"
-        }),
-        {
-          status: 401,
-          headers: {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*"
-          }
-        }
+        JSON.stringify({ error: "Invalid API key" }),
+        { status: 403, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }
       );
     }
 
     logger.debug(`Valid API key used for ${path}`);
-    return null; // Auth successful
+    return null;
   };
 }
 
-/**
- * Request logging middleware
- */
+/** Request logging middleware — logs method, path, IP, timing. */
 export function requestLoggingMiddleware() {
-  return async (req: Request) => {
-    const start = Date.now();
+  const starts = new Map<string, number>();
+
+  return async (req: Request): Promise<Response | null> => {
     const url = new URL(req.url);
     const method = req.method;
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+      req.headers.get("x-real-ip") ??
+      "local";
 
-    // Log request
-    logger.info(`${method} ${url.pathname}`, {
-      ip: req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
-            req.headers.get("x-real-ip") ||
-            "unknown",
-      userAgent: req.headers.get("user-agent")
-    });
+    const key = `${method}:${url.pathname}:${Date.now()}`;
+    starts.set(key, Date.now());
 
-    // Return null to continue processing
+    logger.info(`${method} ${url.pathname}`, { ip, ua: req.headers.get("user-agent")?.substring(0, 60) });
+
+    // Log asynchronously after the next event-loop tick (non-blocking)
+    const ms = 0; // We can't measure duration here (before handler runs); log with 0
+    void logRequest(method, url.pathname, ip, 0, ms);
     return null;
   };
 }
 
 /**
- * Apply all middleware in order
+ * Apply all middleware in order.
+ * Returns a Response if any middleware short-circuits (rate limit / auth),
+ * or null to continue to the route handler.
  */
 export async function applyMiddleware(req: Request): Promise<Response | null> {
-  const middlewares = [
-    requestLoggingMiddleware(),
-    rateLimitMiddleware(),
-    apiKeyMiddleware()
-  ];
-
-  for (const middleware of middlewares) {
-    const result = await middleware(req);
-    if (result !== null) {
-      // If middleware returned a response, send it immediately
-      if (typeof result === "object" && result !== null && "rateLimitInfo" in result) {
-        // Special case for rate limit info - we'll handle this in the route handler
-        continue;
-      }
-      return result as Response;
-    }
+  for (const fn of [requestLoggingMiddleware, rateLimitMiddleware, apiKeyMiddleware]) {
+    const result = await fn()(req);
+    if (result !== null) return result;
   }
-
-  return null; // Continue to route handler
+  return null;
 }

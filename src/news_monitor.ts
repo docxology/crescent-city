@@ -15,7 +15,8 @@
 import { createLogger } from './logger.js';
 import { htmlToText } from './utils.js';
 import { DOMParser } from '@xmldom/xmldom';
-import { mkdir, writeFile } from 'fs/promises';
+import { mkdir, writeFile, readFile, appendFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
 
 const logger = createLogger('news_monitor');
@@ -25,7 +26,44 @@ const NEWS_FEEDS: Record<string, string> = {
   'Times-Standard': 'https://www.times-standard.com/news/rss.xml',
   'Lost Coast Outpost': 'https://lostcoastoutpost.com/feed',
   'Humboldt Times': 'https://www.humboldtcountynews.com/feed',
+  'KIEM-TV NBC Eureka': 'https://www.kiemtv.com/feed/',
 };
+
+const NEWS_OUTPUT_DIR = join(process.cwd(), 'output', 'news');
+/** Persistent deduplication index — survives restarts */
+const SEEN_IDS_PATH = join(NEWS_OUTPUT_DIR, 'seen-ids.json');
+
+/** Normalize a URL to a stable dedup key (strip tracking params, trailing slash) */
+function normalizeUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    // Remove common tracking parameters
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref'].forEach(p => u.searchParams.delete(p));
+    return u.origin + u.pathname.replace(/\/$/, '');
+  } catch {
+    return url.trim();
+  }
+}
+
+/** Load persisted seen-ids set from disk. Returns empty set if file not found. */
+export async function loadSeenIds(): Promise<Set<string>> {
+  if (!existsSync(SEEN_IDS_PATH)) return new Set();
+  try {
+    const raw = await readFile(SEEN_IDS_PATH, 'utf-8');
+    const arr: string[] = JSON.parse(raw);
+    return new Set(arr);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Persist seen-ids set to disk (capped at 10,000 most recent entries). */
+export async function saveSeenIds(seen: Set<string>): Promise<void> {
+  await mkdir(NEWS_OUTPUT_DIR, { recursive: true });
+  // Cap to avoid unbounded growth — keep most recent
+  const arr = [...seen].slice(-10_000);
+  await writeFile(SEEN_IDS_PATH, JSON.stringify(arr, null, 2));
+}
 
 /** Keywords triggering inclusion — case-insensitive substring match */
 const CRESCENT_CITY_KEYWORDS = [
@@ -140,11 +178,10 @@ export async function fetchRSSFeed(
  * Persist a batch of news items to output/news/ as a timestamped JSON file.
  */
 export async function saveNewsItems(items: NewsItem[]): Promise<string> {
-  const dataDir = join(process.cwd(), 'output', 'news');
-  await mkdir(dataDir, { recursive: true });
+  await mkdir(NEWS_OUTPUT_DIR, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const filename = join(dataDir, `news-${timestamp}.json`);
+  const filename = join(NEWS_OUTPUT_DIR, `news-${timestamp}.json`);
 
   const payload = {
     fetchedAt: new Date().toISOString(),
@@ -160,14 +197,24 @@ export async function saveNewsItems(items: NewsItem[]): Promise<string> {
 /**
  * Main news monitoring function.
  *
- * Fetches all configured feeds concurrently, deduplicates across sources,
+ * Fetches all configured feeds concurrently, deduplicates across sources
+ * AND against the persistent seen-ids index (survives restarts),
  * sorts by publication date (newest first), and persists to disk.
+ *
+ * @param filterKeywords - Optional additional keywords to filter by (combined with defaults via OR)
  */
-export async function monitorNews(): Promise<NewsItem[]> {
+export async function monitorNews(filterKeywords?: string[]): Promise<NewsItem[]> {
   logger.info('=== Starting Crescent City News Monitoring ===');
 
+  const effectiveKeywords = filterKeywords
+    ? [...CRESCENT_CITY_KEYWORDS, ...filterKeywords.map(k => k.toLowerCase())]
+    : CRESCENT_CITY_KEYWORDS;
+
+  // Load persistent dedup index
+  const persistedSeen = await loadSeenIds();
+  const sessionSeen = new Set<string>(persistedSeen);
   const allItems: NewsItem[] = [];
-  const seenLinks = new Set<string>();
+  const newIds: string[] = [];
 
   // Fetch all feeds concurrently
   const fetchResults = await Promise.all(
@@ -184,8 +231,16 @@ export async function monitorNews(): Promise<NewsItem[]> {
   const fetchedAt = new Date().toISOString();
   for (const { sourceName, items } of fetchResults) {
     for (const item of items) {
-      if (seenLinks.has(item.link)) continue; // cross-source deduplication
-      seenLinks.add(item.link);
+      // Apply keyword filter if custom keywords provided
+      if (filterKeywords) {
+        const haystack = `${item.title} ${item.content}`.toLowerCase();
+        if (!effectiveKeywords.some(kw => haystack.includes(kw))) continue;
+      }
+
+      const key = normalizeUrl(item.link);
+      if (sessionSeen.has(key)) continue; // cross-source + cross-run dedup
+      sessionSeen.add(key);
+      newIds.push(key);
       allItems.push({ ...item, source: sourceName, fetchedAt });
     }
   }
@@ -197,17 +252,21 @@ export async function monitorNews(): Promise<NewsItem[]> {
     return tb - ta;
   });
 
+  // Persist updated seen-ids
+  if (newIds.length > 0) {
+    await saveSeenIds(sessionSeen);
+    logger.info(`Added ${newIds.length} new URL(s) to dedup index (total: ${sessionSeen.size})`);
+  }
+
   if (allItems.length > 0) {
     await saveNewsItems(allItems);
-    logger.info(`News monitoring complete: ${allItems.length} relevant items found`);
-
-    // Surface the top 3 for immediate visibility
+    logger.info(`News monitoring complete: ${allItems.length} new relevant items found`);
     for (let i = 0; i < Math.min(3, allItems.length); i++) {
       const { title, source, pubDate } = allItems[i];
       logger.info(`  #${i + 1}: [${source}] ${title}`, { pubDate });
     }
   } else {
-    logger.warn('No relevant news items found in this cycle');
+    logger.info('No new relevant items found (all already seen or no matches)');
   }
 
   logger.info('=== News Monitoring Complete ===');

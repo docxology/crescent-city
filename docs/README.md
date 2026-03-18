@@ -6,9 +6,11 @@ Comprehensive documentation for the full pipeline: scraping, verification, expor
 
 | Document | Description |
 | :--- | :--- |
+| [Setup Guide](setup.md) | Step-by-step installation and first-run instructions |
 | [Architecture](architecture.md) | System design, data flow diagrams, full module dependency graph |
 | [Configuration](configuration.md) | All env vars, constants, and tuning parameters |
 | [API Reference](api-reference.md) | Complete table of all exported functions, interfaces, and types |
+| [Roadmap](roadmap.md) | Project phases, feature backlog, and progress tracking |
 | **Module Guides** | |
 | [Scraping](modules/scraping.md) | Browser, TOC, content extraction, and scraper orchestrator |
 | [Verification](modules/verification.md) | SHA-256 integrity checks, section presence, live re-fetch |
@@ -26,7 +28,7 @@ Comprehensive documentation for the full pipeline: scraping, verification, expor
 
 - **Source**: [`src/`](../src/)
 - **Scripts**: [`scripts/`](../scripts/) — thin TypeScript orchestrators
-- **Tests**: [`tests/`](../tests/) — 141 tests across 17 files (zero-mock policy)
+- **Tests**: [`tests/`](../tests/) — 186 tests across 17 files (zero-mock policy)
 - **Output**: `output/` (gitignored)
 
 ## Updating Docs
