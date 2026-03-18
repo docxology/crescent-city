@@ -7,8 +7,8 @@ import {
 } from "../src/domains";
 
 describe("Intelligence Domains", () => {
-  test("has exactly 6 domains", () => {
-    expect(domains).toHaveLength(6);
+  test("has exactly 9 domains", () => {
+    expect(domains).toHaveLength(9);
   });
 
   test("each domain has required fields", () => {
@@ -55,7 +55,7 @@ describe("Intelligence Domains", () => {
 
   test("getDomainSummaries returns summaries without topics", () => {
     const summaries = getDomainSummaries();
-    expect(summaries).toHaveLength(6);
+    expect(summaries).toHaveLength(9);
     for (const s of summaries) {
       expect(s.id).toBeTruthy();
       expect(s.name).toBeTruthy();

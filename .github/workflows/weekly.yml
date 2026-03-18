@@ -1,0 +1,191 @@
+name: Weekly Intelligence Cycle
+
+on:
+  schedule:
+    # Every Monday at 07:00 UTC (midnight Pacific Standard, 00:00 Pacific Daylight)
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      run_scrape:
+        description: 'Run full scrape pipeline (slow, requires Chromium)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  actions: read
+
+jobs:
+  weekly-health-check:
+    name: Weekly Health Check & Monitor
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CRESCENT_CITY_API_KEY: ${{ secrets.CRESCENT_CITY_API_KEY }}
+      OLLAMA_URL: ${{ vars.OLLAMA_URL || 'http://localhost:11434' }}
+      LOG_LEVEL: info
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run full test suite
+        run: bun test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_id }}
+          path: |
+            *.xml
+            test-results/
+          retention-days: 30
+
+      - name: Check NOAA Tsunami alerts
+        run: bun run src/alerts/noaa_tsunami.ts
+        continue-on-error: true
+        timeout-minutes: 3
+
+      - name: Check USGS earthquakes
+        run: bun run src/alerts/usgs_earthquake.ts
+        continue-on-error: true
+        timeout-minutes: 3
+
+      - name: Check NWS weather alerts
+        run: bun run src/alerts/nws_weather.ts
+        continue-on-error: true
+        timeout-minutes: 3
+
+      - name: Check NOAA tides
+        run: bun run alerts:tides
+        continue-on-error: true
+        timeout-minutes: 3
+
+      - name: Check CDFW fishing
+        run: bun run alerts:fishing
+        continue-on-error: true
+        timeout-minutes: 3
+
+      - name: Check news monitor
+        run: bun run src/news_monitor.ts
+        continue-on-error: true
+        timeout-minutes: 5
+
+      - name: Check government meetings
+        run: bun run src/gov_meeting_monitor.ts
+        continue-on-error: true
+        timeout-minutes: 5
+
+      - name: Upload alert outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: alerts-${{ github.run_id }}
+          path: output/alerts/
+          retention-days: 90
+
+  verify-data-integrity:
+    name: Verify Scraped Data Integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only run if scraped data exists (check for manifest)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check if output data exists
+        id: check-data
+        run: |
+          if [ -f "output/manifest.json" ]; then
+            echo "has_data=true" >> $GITHUB_OUTPUT
+            echo "✅ Found output/manifest.json — will run verification"
+          else
+            echo "has_data=false" >> $GITHUB_OUTPUT
+            echo "⚠️ No manifest.json found — skipping verification (run bun run scrape first)"
+          fi
+
+      - name: Run data verification
+        if: steps.check-data.outputs.has_data == 'true'
+        run: bun run verify
+        timeout-minutes: 8
+
+      - name: Run readability analysis
+        if: steps.check-data.outputs.has_data == 'true'
+        run: bun run readability
+        continue-on-error: true
+
+      - name: Run domain coverage analysis
+        if: steps.check-data.outputs.has_data == 'true'
+        run: bun run coverage
+        continue-on-error: true
+
+      - name: Upload analysis outputs
+        if: steps.check-data.outputs.has_data == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-${{ github.run_id }}
+          path: |
+            output/verification-report.json
+            output/readability.json
+            output/domain-coverage.json
+          retention-days: 90
+
+  full-scrape:
+    name: Full Data Pipeline (Manual Only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_scrape == 'true'
+    needs: weekly-health-check
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bun x playwright install chromium --with-deps
+
+      - name: Run full scrape + verify + export pipeline
+        run: bun run all
+        env:
+          RATE_LIMIT_MS: 3000  # Be gentle with ecode360.com in CI
+        timeout-minutes: 90
+
+      - name: Upload scraped data
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraped-data-${{ github.run_id }}
+          path: |
+            output/toc.json
+            output/manifest.json
+            output/articles/
+            output/crescent-city-code.json
+          retention-days: 365

@@ -351,6 +351,169 @@ export const domains: IntelligenceDomain[] = [
       },
     ],
   },
+
+  // ─── Tourism & Recreation ─────────────────────────────────────
+  {
+    id: "tourism-recreation",
+    name: "Tourism & Recreation",
+    icon: "🏕️",
+    description: "Parks, camping permits, beach access, vacation rentals, Battery Point Lighthouse tours, and recreational facilities in Crescent City — gateway to Redwood National Park and the Smith River National Recreation Area.",
+    updatedAt: "2026-03-18",
+    topics: [
+      {
+        name: "Vacation Rentals & Short-Term Lodging",
+        description: "Permit requirements, zoning restrictions, and local tax obligations for vacation rental properties (VRTUs). Crescent City's tourism industry relies significantly on short-term rentals given limited hotel inventory.",
+        sources: [
+          { sectionNumber: "§ 17.04", relevance: "Zoning — permitted uses in residential districts" },
+          { sectionNumber: "§ 5.04", relevance: "Business licenses — vacation rental registration" },
+        ],
+        externalRefs: [
+          "https://www.visitredwoods.com/",
+        ],
+        tags: ["vacation rental", "short-term rental", "vrtu", "lodging", "airbnb", "tourism"],
+      },
+      {
+        name: "Parks & Recreation Facilities",
+        description: "Public parks, beach access points, picnic areas, sports facilities, and park reservation permits. Crescent City's parks serve both locals and 4M+ annual Redwood National Park visitors.",
+        sources: [
+          { sectionNumber: "§ 12.04", relevance: "Streets and sidewalks — public right-of-way access" },
+          { sectionNumber: "§ 8.08", relevance: "Parks — public facility use regulations" },
+          { sectionNumber: "§ 9.04", relevance: "Permit requirements for special events in parks" },
+        ],
+        externalRefs: [
+          "https://www.nps.gov/redw/",
+          "https://www.parks.ca.gov/?page_id=416",
+        ],
+        tags: ["parks", "recreation", "beach access", "camping", "redwood", "special events"],
+      },
+      {
+        name: "Battery Point Lighthouse & Heritage Tourism",
+        description: "Visitor regulations, guided tours, historical preservation requirements for the Battery Point Lighthouse (1856). One of California's most photographed lighthouses, accessible only at low tide.",
+        sources: [
+          { sectionNumber: "§ 2.04", relevance: "Historical preservation — City Administration authority" },
+          { sectionNumber: "§ 17.04", relevance: "Zoning — historic overlay districts" },
+        ],
+        externalRefs: [
+          "https://delnortehistory.org/battery-point-lighthouse/",
+        ],
+        tags: ["battery point lighthouse", "heritage tourism", "historical preservation", "guided tours"],
+      },
+      {
+        name: "Fishing Charters & Recreational Fishing",
+        description: "Charter vessel licensing, CDFW recreational fishing regulations, and party boat operations from Citizen Dock. Seasonal sport fishing closures (salmon, rockfish, halibut) affect local tourism revenue.",
+        sources: [
+          { sectionNumber: "§ 13.04", relevance: "Harbor — commercial and charter fishing vessel regulations" },
+          { sectionNumber: "§ 5.08", relevance: "Business licenses — charter and party boat operations" },
+        ],
+        externalRefs: [
+          "https://wildlife.ca.gov/Fishing/Ocean/Regulations",
+          "https://www.portofcrescentcity.com/",
+        ],
+        tags: ["fishing charters", "party boats", "recreational fishing", "salmon season", "sport fishing"],
+      },
+    ],
+  },
+
+  // ─── Harbor & Marine Operations ───────────────────────────────
+  {
+    id: "harbor-marine-operations",
+    name: "Harbor & Marine Operations",
+    icon: "⚓",
+    description: "Vessel registration, docking fees, slip assignments, dredging permits, fuel dock regulations, and port operations at the Port of Crescent City — the northernmost California working commercial fishing harbor south of the Oregon border.",
+    updatedAt: "2026-03-18",
+    topics: [
+      {
+        name: "Vessel Registration & Docking Fees",
+        description: "Harbor Commission rate schedule for transient and permanent vessel moorage, live-aboard permits, and vessel registration. Docking fees are set by ordinance and revised annually by the Harbor Commission.",
+        sources: [
+          { sectionNumber: "§ 13.04", relevance: "Harbor — moorage rates and vessel registration procedures" },
+          { sectionNumber: "§ 13.08", relevance: "Harbor — live-aboard vessel regulations and sanitation" },
+          { sectionNumber: "§ 2.44", relevance: "Harbor Commission — authority to set fee schedules" },
+        ],
+        externalRefs: [
+          "https://www.portofcrescentcity.com/harbormaster",
+          "https://dbw.parks.ca.gov/",
+        ],
+        tags: ["vessel registration", "moorage", "docking fees", "harbor commission", "live-aboard", "slip"],
+      },
+      {
+        name: "Commercial Fishing Operations",
+        description: "Regulations for commercial fishing vessel landing, ice facilities, fish processing, Dungeness crab season emergency protocols, and PacFIN landing data reporting requirements at Citizen Dock.",
+        sources: [
+          { sectionNumber: "§ 13.04", relevance: "Harbor — commercial landing and unloading procedures" },
+          { sectionNumber: "§ 5.12", relevance: "Business licenses — fish buyers and processors" },
+        ],
+        externalRefs: [
+          "https://pacfin.psmfc.org/",
+          "https://wildlife.ca.gov/Fishing/Commercial/Dungeness-Crab",
+        ],
+        tags: ["commercial fishing", "dungeness crab", "fish landing", "pacfin", "citizen dock", "ice plant"],
+      },
+      {
+        name: "Dredging & Channel Maintenance",
+        description: "US Army Corps of Engineers dredging permits, harbor navigation channel maintenance schedules, environmental mitigation requirements, and spoil disposal regulations for keeping Crescent City Harbor navigable.",
+        sources: [
+          { sectionNumber: "§ 13.12", relevance: "Harbor — dredging authorization and coordination with federal agencies" },
+          { sectionNumber: "§ 15.08", relevance: "Environmental protection — coastal zone dredging requirements" },
+        ],
+        externalRefs: [
+          "https://www.spn.usace.army.mil/Missions/Civil-Works/Navigation/Crescent-City/",
+          "https://www.coastal.ca.gov/",
+        ],
+        tags: ["dredging", "navigation channel", "usace", "coastal commission", "harbor maintenance"],
+      },
+    ],
+  },
+
+  // ─── Education & Youth ────────────────────────────────────────
+  {
+    id: "education-youth",
+    name: "Education & Youth",
+    icon: "📚",
+    description: "School zone regulations, youth program permits, library use, parks & recreation facility reservations, and educational facility land-use rules — served by Del Norte Unified School District and College of the Redwoods.",
+    updatedAt: "2026-03-18",
+    topics: [
+      {
+        name: "School Zone Regulations",
+        description: "Traffic, parking, speed limits, and pedestrian safety regulations around Del Norte Unified School District campuses (Del Norte High School, Margaret Keating, Bess Maxwell). School zone fines doubled.",
+        sources: [
+          { sectionNumber: "§ 10.04", relevance: "Vehicles and traffic — school zone speed limits (15 mph)" },
+          { sectionNumber: "§ 10.20", relevance: "Parking — school zone loading and unloading zones" },
+          { sectionNumber: "§ 12.04", relevance: "Streets — crosswalk and pedestrian safety near schools" },
+        ],
+        externalRefs: [
+          "https://www.dnusd.org/",
+          "https://www.redwoods.edu/",
+        ],
+        tags: ["school zone", "traffic safety", "speed limit", "dnusd", "pedestrian", "school buses"],
+      },
+      {
+        name: "Youth Programs & Recreation Permits",
+        description: "Permit requirements for youth athletic leagues, summer programs, after-school programs, park reservations for youth events, and nonprofit youth organization registration with the City.",
+        sources: [
+          { sectionNumber: "§ 5.04", relevance: "Business licenses — nonprofit and youth organization registration" },
+          { sectionNumber: "§ 8.08", relevance: "Parks — youth program facility use permits" },
+          { sectionNumber: "§ 9.04", relevance: "Special event permits — youth athletics and tournaments" },
+        ],
+        externalRefs: [
+          "https://www.co.del-norte.ca.us/departments/parks-recreation",
+        ],
+        tags: ["youth programs", "recreation permits", "after-school", "athletic leagues", "summer programs"],
+      },
+      {
+        name: "Library & Cultural Facilities",
+        description: "Public library use regulations, Del Norte County Library District coordination, community meeting room reservations, and public art and cultural program ordinances.",
+        sources: [
+          { sectionNumber: "§ 2.04", relevance: "Administration — cultural services and library coordination" },
+          { sectionNumber: "§ 8.08", relevance: "Parks — community facility use and reservation rules" },
+        ],
+        externalRefs: [
+          "https://library.co.del-norte.ca.us/",
+        ],
+        tags: ["library", "community facilities", "cultural programs", "meeting rooms", "public art"],
+      },
+    ],
+  },
 ];
 
 /** Get a domain by its ID */

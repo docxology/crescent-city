@@ -8,24 +8,39 @@
  */
 import { createLogger } from '../logger.js';
 import { computeSha256 } from '../utils.js';
+import { appendFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 const logger = createLogger('usgs_earthquake_alert');
 
 // USGS Earthquake API for significant earthquakes in the last hour
 const USGS_EARTHQUAKE_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_hour.geojson';
-// Alternative: all earthquakes in the last hour for more comprehensive monitoring
-// const USGS_EARTHQUAKE_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson';
 
 // Crescent City approximate coordinates
 const CRESCENT_CITY_LAT = 41.7485;
 const CRESCENT_CITY_LNG = -124.2028;
-// Search radius in kilometers (approximately 200km)
 const SEARCH_RADIUS_KM = 200;
-// Minimum magnitude to consider
 const MIN_MAGNITUDE = 4.0;
 
-// Cache to prevent duplicate processing of the same earthquake
-const processedEarthquakes = new Set<string>();
+// Persistent alert history JSONL path
+const HISTORY_DIR = join(process.cwd(), 'output', 'alerts', 'earthquake');
+const HISTORY_FILE = join(HISTORY_DIR, 'history.jsonl');
+
+/** Load processed earthquake IDs from persistent history to prevent cross-run duplicates */
+function loadProcessedIds(): Set<string> {
+  const ids = new Set<string>();
+  if (!existsSync(HISTORY_FILE)) return ids;
+  try {
+    const lines = readFileSync(HISTORY_FILE, 'utf-8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try { ids.add(JSON.parse(line).id); } catch { /* skip corrupt lines */ }
+    }
+  } catch { /* ignore read errors */ }
+  return ids;
+}
+
+// Cache to prevent duplicate processing of the same earthquake (seeded from JSONL history)
+const processedEarthquakes = loadProcessedIds();
 
 /**
  * Calculate distance between two points using Haversine formula
@@ -183,43 +198,55 @@ async function fetchUSGSOverlayEarthquakes(): Promise<Array<{
 }
 
 /**
+ * Append an earthquake event to the persistent JSONL history log.
+ * One line per earthquake: {id, magnitude, place, distanceKm, tsunami, alertLevel, fetchedAt}
+ */
+function appendEarthquakeHistory(earthquake: any, alertLevel: string): void {
+  try {
+    mkdirSync(HISTORY_DIR, { recursive: true });
+    const record = JSON.stringify({
+      id: earthquake.id,
+      magnitude: earthquake.magnitude,
+      place: earthquake.place,
+      distanceKm: Math.round(earthquake.distanceKm * 10) / 10,
+      depth: earthquake.depth,
+      latitude: earthquake.latitude,
+      longitude: earthquake.longitude,
+      tsunami: earthquake.tsunami,
+      alertLevel,
+      time: new Date(earthquake.time).toISOString(),
+      fetchedAt: new Date().toISOString(),
+    });
+    appendFileSync(HISTORY_FILE, record + '\n', 'utf-8');
+  } catch (err) {
+    logger.warn('Failed to append earthquake history', { error: String(err) });
+  }
+}
+
+/**
  * Save earthquake to file for historical tracking
+ * @deprecated Use appendEarthquakeHistory for lightweight persistent logging
  */
 async function saveEarthquakeToFile(earthquake: any): Promise<void> {
   const fs = await import('fs/promises');
   const path = await import('path');
-  
+
   const dataDir = path.join(process.cwd(), 'output', 'alerts', 'earthquake');
-  try {
-    await fs.mkdir(dataDir, { recursive: true });
-  } catch (e) {
-    // Directory might already exist
-  }
-  
+  try { await fs.mkdir(dataDir, { recursive: true }); } catch {}
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const eqIdSafe = earthquake.id.replace(/[^\w\-]/g, '_');
   const filename = path.join(dataDir, `earthquake-${eqIdSafe}-${timestamp}.json`);
-  
-  // Also create GeoJSON format for mapping applications
+
   const geojson = {
     type: "Feature",
-    properties: {
-      ...earthquake,
-      fetchedAt: new Date().toISOString()
-    },
+    properties: { ...earthquake, fetchedAt: new Date().toISOString() },
     geometry: {
       type: "Point",
-      coordinates: [earthquake.longitude, earthquake.latitude, earthquake.depth || 0]
-    }
+      coordinates: [earthquake.longitude, earthquake.latitude, earthquake.depth || 0],
+    },
   };
-  
-  const earthquakeData = {
-    fetchedAt: new Date().toISOString(),
-    earthquake: earthquake,
-    geojson: geojson
-  };
-  
-  await fs.writeFile(filename, JSON.stringify(earthquakeData, null, 2));
+  await fs.writeFile(filename, JSON.stringify({ fetchedAt: new Date().toISOString(), earthquake, geojson }, null, 2));
   logger.info(`Saved earthquake alert to ${filename}`);
 }
 
@@ -243,14 +270,17 @@ export async function monitorUSGSEarthquakeAlerts(): Promise<void> {
     // Mark as processed
     processedEarthquakes.add(eq.id);
     newEarthquakesCount++;
-    
+
     // Determine alert level based on magnitude and tsunami potential
     let alertLevel = 'INFO';
     if (eq.magnitude >= 6.0) alertLevel = 'WARNING';
     if (eq.magnitude >= 7.0) alertLevel = 'CRITICAL';
     if (eq.tsunami === 1) alertLevel = 'TSUNAMI_WATCH';
     if (eq.tsunami === 2) alertLevel = 'TSUNAMI_WARNING';
-    
+
+    // Persist to JSONL history immediately
+    appendEarthquakeHistory(eq, alertLevel);
+
     logger.log(
       alertLevel === 'CRITICAL' || alertLevel.includes('TSUNAMI') ? 'warning' : 'info',
       `NEW EARTHQUAKE DETECTED NEAR CRESCENT CITY`,
@@ -265,11 +295,10 @@ export async function monitorUSGSEarthquakeAlerts(): Promise<void> {
         time: new Date(eq.time).toISOString()
       }
     );
-    
+
     // Save earthquake to file
     await saveEarthquakeToFile(eq);
-    
-    // TODO: Trigger automated notifications via existing monitoring channels
+
     logger.info('Would trigger automated notifications (email, SMS, dashboard update, etc.)', {
       earthquakeId: eq.id
     });

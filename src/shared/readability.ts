@@ -4,6 +4,7 @@
  * Implements:
  * - Flesch-Kincaid Grade Level (standard legal readability metric)
  * - Flesch Reading Ease score
+ * - Gunning Fog Index (based on complex word percentage)
  * - Simple word-count statistics
  *
  * No external dependencies — pure TypeScript/arithmetic.
@@ -30,6 +31,27 @@ function syllableCount(word: string): number {
   return Math.max(1, count);
 }
 
+/**
+ * Returns true if the word is "complex" for Gunning Fog:
+ * 3+ syllables, not a common suffix form (-ing, -es, -ed with 3+ syllables after stripping).
+ * Also excludes proper nouns (words starting with uppercase in the original).
+ */
+function isComplexWord(word: string): boolean {
+  if (word.length === 0) return false;
+  // Exclude proper nouns heuristic (capitalized mid-sentence)
+  if (word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()) return false;
+  const syls = syllableCount(word);
+  if (syls < 3) return false;
+  // Exclude common suffix forms that inflate complexity
+  const low = word.toLowerCase();
+  if (low.endsWith('ing') || low.endsWith('ed') || low.endsWith('es') || low.endsWith('er')) {
+    // Only exclude if dropping suffix gives 2-syllable root
+    const root = low.replace(/(?:ing|ed|es|er)$/, '');
+    if (syllableCount(root) <= 2) return false;
+  }
+  return true;
+}
+
 /** Split text into sentences (handles periods, !, ?) */
 function splitSentences(text: string): string[] {
   return text.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
@@ -45,6 +67,10 @@ export interface ReadabilityScore {
   gradeLevel: number;
   /** Flesch Reading Ease (0-100, higher = easier) */
   readingEase: number;
+  /** Gunning Fog Index (grade level based on complex word %) */
+  gunningFog: number;
+  /** Percentage of complex words (3+ syllables) */
+  complexWordPct: number;
   /** Average syllables per word */
   avgSyllablesPerWord: number;
   /** Average words per sentence */
@@ -74,6 +100,11 @@ export function computeReadability(text: string): ReadabilityScore | null {
   const gradeLevel = Math.round((0.39 * ASL + 11.8 * ASW - 15.59) * 10) / 10;
   const readingEase = Math.round((206.835 - 1.015 * ASL - 84.6 * ASW) * 10) / 10;
 
+  // Gunning Fog Index: 0.4 * (ASL + %complex_words)
+  const complexCount = words.filter(isComplexWord).length;
+  const complexWordPct = (complexCount / words.length) * 100;
+  const gunningFog = Math.round((0.4 * (ASL + complexWordPct)) * 10) / 10;
+
   let difficulty: ReadabilityScore['difficulty'];
   if (gradeLevel < 8) difficulty = 'plain';
   else if (gradeLevel < 12) difficulty = 'standard';
@@ -83,6 +114,8 @@ export function computeReadability(text: string): ReadabilityScore | null {
   return {
     gradeLevel,
     readingEase,
+    gunningFog,
+    complexWordPct: Math.round(complexWordPct * 10) / 10,
     avgSyllablesPerWord: Math.round(ASW * 100) / 100,
     avgWordsPerSentence: Math.round(ASL * 10) / 10,
     wordCount: words.length,

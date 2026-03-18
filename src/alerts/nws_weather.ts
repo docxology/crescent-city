@@ -7,20 +7,59 @@
  */
 import { createLogger } from '../logger.js';
 import { computeSha256 } from '../utils.js';
+import { appendFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 const logger = createLogger('nws_weather_alert');
 
 // NWS API endpoint for active alerts in California (specifically for Northwest CA zone)
 const NWS_ALERTS_URL = 'https://api.weather.gov/alerts/active?region=CA&zone=CAZ006'; // CAZ006 is Northwest CA coastal zone
-// Alternative: broader search for testing
-// const NWS_ALERTS_URL = 'https://api.weather.gov/alerts/active?region=CA';
 
-// Crescent City approximate coordinates for point-in-polygon checks
 const CRESCENT_CITY_LAT = 41.7485;
 const CRESCENT_CITY_LNG = -124.2028;
 
-// Cache to prevent duplicate processing of the same alert
-const processedAlerts = new Set<string>();
+// Persistent alert history JSONL path
+const HISTORY_DIR = join(process.cwd(), 'output', 'alerts', 'weather');
+const HISTORY_FILE = join(HISTORY_DIR, 'history.jsonl');
+
+/** Load processed alert IDs from persistent history to prevent cross-run duplicates */
+function loadProcessedIds(): Set<string> {
+  const ids = new Set<string>();
+  if (!existsSync(HISTORY_FILE)) return ids;
+  try {
+    const lines = readFileSync(HISTORY_FILE, 'utf-8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try { ids.add(JSON.parse(line).id); } catch { /* skip corrupt lines */ }
+    }
+  } catch { /* ignore read errors */ }
+  return ids;
+}
+
+/** Append a new weather alert to the persistent JSONL history log */
+function appendWeatherHistory(alert: any, severityLevel: string): void {
+  try {
+    mkdirSync(HISTORY_DIR, { recursive: true });
+    const record = JSON.stringify({
+      id: alert.id,
+      event: alert.event,
+      severity: alert.severity,
+      certainty: alert.certainty,
+      urgency: alert.urgency,
+      severityLevel,
+      effective: alert.effective,
+      expires: alert.expires,
+      headline: alert.headline,
+      areaDesc: alert.areaDesc,
+      fetchedAt: new Date().toISOString(),
+    });
+    appendFileSync(HISTORY_FILE, record + '\n', 'utf-8');
+  } catch (err) {
+    logger.warn('Failed to append weather alert history', { error: String(err) });
+  }
+}
+
+// Cache to prevent duplicate processing of the same alert (seeded from JSONL history)
+const processedAlerts = loadProcessedIds();
 
 /**
  * Interface for NWS alert properties
@@ -322,12 +361,15 @@ export async function monitorNWSWeatherAlerts(): Promise<void> {
       // Determine severity level for categorization
       const severityLevel = getAlertSeverityLevel(alert.severity, alert.certainty, alert.urgency);
       advisoryCount[severityLevel]++;
-      
+
+      // Persist to JSONL history
+      appendWeatherHistory(alert, severityLevel);
+
       // Log based on severity level
       let logLevel = 'info';
       if (severityLevel === 'warning') logLevel = 'warning';
       if (severityLevel === 'watch') logLevel = 'warn';
-      
+
       logger.log(
         logLevel,
         `NEW NWS WEATHER ALERT FOR CRESCENT CITY (${severityLevel.toUpperCase()})`,
@@ -344,7 +386,7 @@ export async function monitorNWSWeatherAlerts(): Promise<void> {
           severityLevel
         }
       );
-      
+
       // Save alert to file
       await saveAlertToFile(alert, severityLevel);
       

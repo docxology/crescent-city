@@ -569,3 +569,35 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+
+/** Compute a short hash-based ETag for a JSON payload */
+export function etag(payload: string): string {
+  let hash = 0;
+  for (let i = 0; i < payload.length; i++) {
+    hash = Math.imul(31, hash) + payload.charCodeAt(i) | 0;
+  }
+  return `"${(hash >>> 0).toString(16)}"`;
+}
+
+/** Return JSON response with ETag and optional 304 shortcircuit for static endpoints */
+export function jsonWithETag(data: unknown, req: Request | undefined, status = 200): Response {
+  const payload = JSON.stringify(data);
+  const tag = etag(payload);
+  const ifNoneMatch = req?.headers.get("If-None-Match");
+  if (ifNoneMatch === tag) {
+    return new Response(null, {
+      status: 304,
+      headers: { "ETag": tag, "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" },
+    });
+  }
+  return new Response(payload, {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "ETag": tag,
+      "Vary": "Accept-Encoding",
+      "Cache-Control": "public, max-age=60",
+    },
+  });
+}

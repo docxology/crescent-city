@@ -119,6 +119,6 @@ describe("verify — domain coverage module", () => {
     expect(typeof report.totalSections).toBe("number");
     expect(typeof report.overallCoveragePct).toBe("number");
     expect(Array.isArray(report.domains)).toBe(true);
-    expect(report.domains.length).toBe(6); // 6 intelligence domains
+    expect(report.domains.length).toBe(9); // 9 intelligence domains
   });
 });
