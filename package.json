@@ -13,12 +13,14 @@
     "chat": "bun run src/llm/index.ts chat",
     "query": "bun run src/llm/index.ts query",
     "status": "bun run src/llm/index.ts status",
-    "monitor": "bun run src/monitor.ts",
-    "news": "bun run src/news_monitor.ts",
-    "gov-meetings": "bun run src/gov_meeting_monitor.ts",
+    "monitor": "bun run scripts/run-monitor.ts",
+    "news": "bun run scripts/run-news.ts",
+    "gov-meetings": "bun run scripts/run-meetings.ts",
+    "alerts": "bun run scripts/run-alerts.ts",
     "alerts:tsunami": "bun run src/alerts/noaa_tsunami.ts",
     "alerts:earthquake": "bun run src/alerts/usgs_earthquake.ts",
     "alerts:weather": "bun run src/alerts/nws_weather.ts",
+    "weekly-check": "bun run scripts/weekly-check.ts",
     "test": "bun test tests/"
   },
   "dependencies": {

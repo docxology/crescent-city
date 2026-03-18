@@ -27,7 +27,7 @@ chroma run --path chroma_data &
 
 ## RAG Flow
 
-```
+```text
 input question
     → nomic-embed-text (embed)
     → ChromaDB (top-K nearest chunks)

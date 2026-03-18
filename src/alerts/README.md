@@ -12,7 +12,7 @@ Real-time hazard monitoring for Crescent City, CA.
 
 ## Output
 
-```
+```text
 output/
   alerts/
     tsunami/          # one JSON per NOAA alert batch

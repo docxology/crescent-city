@@ -14,7 +14,7 @@ Thin TypeScript orchestrators for the Crescent City pipeline. All business logic
 
 ## Data Flow
 
-```
+```text
 scripts/weekly-check.ts
     ├── src/monitor.ts           → output/monitor-report.json
     ├── src/alerts/noaa_tsunami.ts → output/alerts/tsunami/

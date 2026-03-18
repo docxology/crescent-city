@@ -13,6 +13,7 @@ Composable middleware chain applied to every request before route handlers.
 | **API key auth** | Validates `X-API-Key` header or `?api_key=` param |
 
 **Bypass routes** (no rate limit or auth):
+
 - `GET /api/health`
 - `GET /api/openapi.yaml`
 - `GET /api/swagger`
