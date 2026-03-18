@@ -476,6 +476,161 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/sections:
+    get:
+      summary: List sections with hierarchical filters
+      description: Returns sections filtered by title and/or chapter number.
+      operationId: listSections
+      tags: [Municipal Code]
+      parameters:
+        - {in: query, name: title, schema: {type: string}, description: "Title number e.g. '17'"}
+        - {in: query, name: chapter, schema: {type: string}, description: "Chapter number e.g. '04'"}
+        - {in: query, name: limit, schema: {type: integer, default: 100}}
+        - {in: query, name: offset, schema: {type: integer, default: 0}}
+      responses:
+        '200':
+          description: Filtered list of sections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sections: {type: array, items: {type: object}}
+                  total: {type: integer}
+                  offset: {type: integer}
+                  limit: {type: integer}
+  /api/domain/{id}/sections:
+    get:
+      summary: Get code sections for an intelligence domain
+      description: Returns all municipal code sections cross-referenced by a specific domain.
+      operationId: getDomainSections
+      tags: [Intelligence Domains]
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: Domain section cross-references
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  domainId: {type: string}
+                  domainName: {type: string}
+                  sectionRefs: {type: array, items: {type: string}}
+        '404': {description: Domain not found}
+  /api/monitor/history:
+    get:
+      summary: Get monitor run history
+      description: Returns chronological history from output/monitor-history.jsonl (most recent first).
+      operationId: getMonitorHistory
+      tags: [Monitoring]
+      parameters:
+        - {in: query, name: limit, schema: {type: integer, default: 20}}
+      responses:
+        '200':
+          description: Monitor history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  history:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp: {type: string, format: date-time}
+                        overallStatus: {type: string, enum: [clean, changed, error]}
+        '404': {description: No history yet}
+  /api/monitor/alerts:
+    get:
+      summary: Aggregated real-time hazard alert status
+      description: Returns latest status from all 5 monitors (tsunami, earthquake, weather, tides, fishing).
+      operationId: getMonitorAlerts
+      tags: [Monitoring, Alerts]
+      responses:
+        '200':
+          description: Aggregated alert status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fetchedAt: {type: string, format: date-time}
+                  alerts:
+                    type: object
+                    properties:
+                      tsunami: {type: object, properties: {status: {type: string}, count: {type: integer}}}
+                      earthquake: {type: object, properties: {status: {type: string}, count: {type: integer}}}
+                      weather: {type: object, properties: {status: {type: string}, count: {type: integer}}}
+                      tides: {type: object, properties: {status: {type: string}, waterLevel: {type: number}}}
+                      fishing: {type: object, properties: {status: {type: string}}}
+  /api/readability:
+    get:
+      summary: Flesch-Kincaid readability scores for all code sections
+      description: Returns grade level and reading ease for all 2,194 sections. Computed on demand or served from cache.
+      operationId: getReadability
+      tags: [Analytics]
+      responses:
+        '200':
+          description: Readability analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  computedAt: {type: string, format: date-time}
+                  totalSections: {type: integer}
+                  scored: {type: integer}
+                  averageGradeLevel: {type: number}
+                  hardestSections: {type: array, items: {type: object}}
+                  easiestSections: {type: array, items: {type: object}}
+  /api/domains/coverage:
+    get:
+      summary: Domain coverage metrics
+      description: Percentage of sections cross-referenced by each intelligence domain using prefix matching.
+      operationId: getDomainsCoverage
+      tags: [Intelligence Domains, Analytics]
+      responses:
+        '200':
+          description: Domain coverage report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  computedAt: {type: string, format: date-time}
+                  totalSections: {type: integer}
+                  coveredSections: {type: integer}
+                  overallCoveragePct: {type: number}
+                  domains:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        domainId: {type: string}
+                        domainName: {type: string}
+                        referencedCount: {type: integer}
+                        coveragePct: {type: number}
+  /api/health:
+    get:
+      summary: Server health check
+      description: Returns server status and timestamp. No authentication required.
+      operationId: getHealth
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, example: ok}
+                  timestamp: {type: string, format: date-time}
+
 components:
   schemas:
     TocItem:

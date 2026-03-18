@@ -10,6 +10,29 @@ const log = createLogger("gui");
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
 const STATIC_DIR = new URL("static/", import.meta.url).pathname;
 
+/** Minimum byte size to bother compressing (4 KB) */
+const GZIP_THRESHOLD = 4096;
+
+/**
+ * Transparently gzip-compress a Response if the client supports it
+ * and the response body is larger than GZIP_THRESHOLD bytes.
+ */
+async function maybeCompress(res: Response, acceptEncoding: string | null): Promise<Response> {
+  if (!acceptEncoding?.includes("gzip")) return res;
+  const ct = res.headers.get("Content-Type") ?? "";
+  if (!ct.startsWith("application/json") && !ct.startsWith("text/")) return res;
+
+  const body = await res.arrayBuffer();
+  if (body.byteLength < GZIP_THRESHOLD) return new Response(body, res);
+
+  const compressed = Bun.gzipSync(Buffer.from(body));
+  const headers = new Headers(res.headers);
+  headers.set("Content-Encoding", "gzip");
+  headers.set("Content-Length", String(compressed.byteLength));
+  headers.set("Vary", "Accept-Encoding");
+  return new Response(compressed, { status: res.status, headers });
+}
+
 // Pre-load search index
 await initSearch();
 
@@ -26,7 +49,8 @@ const server = Bun.serve({
 
     // API routes
     if (url.pathname.startsWith("/api/")) {
-      return handleApiRoute(url, req);
+      const apiRes = await handleApiRoute(url, req);
+      return maybeCompress(apiRes, req.headers.get("Accept-Encoding"));
     }
 
     // Static files

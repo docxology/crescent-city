@@ -178,6 +178,43 @@ bun test
 
 ---
 
+## 🎛️ Interactive Menu (`run.sh`)
+
+The top-level `run.sh` provides a **full interactive text menu** covering every project feature:
+
+```bash
+./run.sh          # Interactive menu
+./run.sh gui      # Launch web viewer directly
+./run.sh test     # Run test suite directly
+./run.sh setup    # Install dependencies + Playwright
+./run.sh status   # System status dashboard
+./run.sh api-test # Test all API endpoints (requires running GUI)
+```
+
+Menu sections:
+
+| Section | Options |
+| :------ | :------ |
+| **Setup & Data Pipeline** | Install deps · Run tests · Scrape · Verify · Export |
+| **Web Interface** | Launch GUI → browser · Test 12 API endpoints live |
+| **AI / RAG** | Index ChromaDB · Interactive chat · Single query · Status · Pull models |
+| **Monitoring & Alerts** | Code monitor · News (4 RSS) · Gov meetings · Tides · Fishing · Tsunami · Earthquake · Weather · All alerts · Weekly check |
+| **Analytics** | Readability scoring · Domain coverage · JSON summary views · RAG query log |
+| **Full Pipeline** | Auto: Setup → Test → Scrape → Verify → Export → GUI in one shot |
+
+The API tester (`option 7`) live-checks 12 endpoints and reports HTTP status codes:
+
+```
+  /api/health                    HTTP 200  keys:status,timestamp
+  /api/domains                   HTTP 200  array len=6
+  /api/search?q=tsunami&limit=3  HTTP 200  keys:query,total,offset,limit,count
+  /api/domains/coverage          HTTP 200  keys:computedAt,totalSections,...
+  /api/readability               HTTP 200  keys:computedAt,totalSections,...
+  /api/monitor/alerts            HTTP 200  keys:fetchedAt,alerts
+```
+
+---
+
 ## 🖥️ Web Viewer Features
 
 Launch with `bun run gui` → open **<http://localhost:3000>**:
