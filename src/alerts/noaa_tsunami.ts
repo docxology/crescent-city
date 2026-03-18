@@ -182,9 +182,10 @@ async function saveAlertToFile(alert: any): Promise<void> {
 }
 
 /**
- * Main NOAA tsunami alert monitoring function
+ * Main NOAA tsunami alert monitoring function.
+ * Exported for use by thin orchestrator scripts.
  */
-async function monitorNOAATsunamiAlerts(): Promise<void> {
+export async function monitorNOAATsunamiAlerts(): Promise<void> {
   logger.info('=== Starting NOAA Tsunami Alert Monitoring ===');
   
   const alerts = await fetchNOAATsunamiAlerts();
@@ -211,7 +212,7 @@ async function monitorNOAATsunamiAlerts(): Promise<void> {
     processedAlerts.add(alert.id);
     newAlertsCount++;
     
-    logger.warning('NEW TSUNAMI ALERT FOR CRESCENT CITY DETECTED!', {
+    logger.warn('NEW TSUNAMI ALERT FOR CRESCENT CITY DETECTED!', {
       id: alert.id,
       headline: alert.headline,
       severity: alert.severity,

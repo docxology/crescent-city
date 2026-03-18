@@ -246,9 +246,10 @@ async function saveAlertToFile(alert: any, severityLevel: 'advisory' | 'watch' |
 }
 
 /**
- * Main NWS weather alert monitoring function
+ * Main NWS weather alert monitoring function.
+ * Exported for use by thin orchestrator scripts.
  */
-async function monitorNWSWeatherAlerts(): Promise<void> {
+export async function monitorNWSWeatherAlerts(): Promise<void> {
   logger.info('=== Starting NWS Weather Alert Monitoring ===');
   
   try {

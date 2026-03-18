@@ -11,7 +11,7 @@
     <a href="#-quick-start"><img src="https://img.shields.io/badge/Bun-v1.0+-black?logo=bun" alt="Bun"></a>
     <a href="docs/modules/llm.md"><img src="https://img.shields.io/badge/Ollama-RAG_Chat-blue?logo=ollama" alt="Ollama"></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-CC_BY--SA_4.0-lightgrey" alt="License"></a>
-    <a href="#-test-suite"><img src="https://img.shields.io/badge/Tests-135_passing-brightgreen" alt="Tests"></a>
+    <a href="#-test-suite"><img src="https://img.shields.io/badge/Tests-120%2B_passing-brightgreen" alt="Tests"></a>
   </p>
 </p>
 
@@ -144,18 +144,29 @@ The RAG pipeline embeds questions via `nomic-embed-text`, retrieves the top-10 m
 ```
 src/
   types.ts              # Shared TypeScript interfaces
-  constants.ts          # URLs, paths, rate limits
+  constants.ts          # URLs, paths, rate limits (env-overridable)
   utils.ts              # Hash, flatten, HTML, CSV, filename utilities
+  logger.ts             # Structured logger (LOG_LEVEL env variable)
   browser.ts            # Playwright lifecycle + Cloudflare bypass
   toc.ts                # TOC fetcher + tree utilities
   content.ts            # Page scraper + section extraction
   scrape.ts             # Scraper orchestrator with resume
   verify.ts             # Verification engine
   export.ts             # Multi-format exporter
+  monitor.ts            # Municipal code change detection
+  news_monitor.ts       # RSS news aggregator (Times-Standard, Lost Coast, Humboldt Times)
+  gov_meeting_monitor.ts # City council / planning / harbor meeting tracker
+  domains.ts            # Intelligence domain cross-references (emergency, business, etc.)
+  alerts/               # Real-time alert integrations
+    noaa_tsunami.ts     # NOAA CAP tsunami warning monitor
+    usgs_earthquake.ts  # USGS earthquake monitor (coastal, > 4.0M)
+    nws_weather.ts      # NWS coastal weather alert monitor
+  api/                  # API middleware
+    middleware.ts       # Rate limiting, API key auth, request logging
   shared/               # Path resolution + data loading
   gui/                  # HTTP server, routes, search, analytics
   llm/                  # Ollama, ChromaDB, embeddings, RAG
-tests/                  # 135 unit tests across 15 files
+tests/                  # Unit test suite (bun:test, zero-mock policy)
 docs/                   # Full documentation suite
 output/                 # Scraped data (gitignored)
 ```
@@ -237,6 +248,12 @@ Run all tests: `bun test`
 | `bun run chat` | Interactive RAG chat |
 | `bun run query "..."` | Single RAG query |
 | `bun run status` | Check service status |
+| `bun run monitor` | Municipal code change detection |
+| `bun run news` | Fetch local news RSS feeds |
+| `bun run gov-meetings` | Scrape city meeting agendas/minutes |
+| `bun run alerts:tsunami` | Poll NOAA CAP tsunami warnings |
+| `bun run alerts:earthquake` | Poll USGS earthquake feed |
+| `bun run alerts:weather` | Poll NWS coastal weather alerts |
 | `bun test` | Run test suite |
 
 ---

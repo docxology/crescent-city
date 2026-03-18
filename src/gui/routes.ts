@@ -1,4 +1,5 @@
 /** API route handlers for the GUI server */
+import { join } from "path";
 import { loadToc, loadArticle, loadManifest } from "../shared/data.js";
 import { search, getIndexedCount } from "./search.js";
 import { createLogger } from "../logger.js";
@@ -299,7 +300,7 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
     try {
       const { readFile } = await import("fs/promises");
       const { existsSync } = await import("fs");
-      const specPath = "../openapi.yaml";
+      const specPath = join(process.cwd(), "openapi.yaml");
       if (!existsSync(specPath)) {
         return json({ error: "OpenAPI specification not found" }, 404);
       }
@@ -334,6 +335,11 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
     } catch (err: any) {
       return json({ error: `Failed to serve Swagger UI: ${err.message}` }, 500);
     }
+  }
+
+  // GET /api/health — liveness probe
+  if (path === "/api/health") {
+    return json({ status: "ok", timestamp: new Date().toISOString() });
   }
 
   return json({ error: "Not found" }, 404);

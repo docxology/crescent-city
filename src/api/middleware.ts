@@ -114,8 +114,6 @@ export function apiKeyMiddleware() {
     }
 
     const apiKey = req.headers.get("x-api-key");
-    const apiKey = req.headers.get("x-api-key");
-    const queryApiKey = new URL(req.url).searchParams.get("api_key");
     const queryApiKey = new URL(req.url).searchParams.get("api_key");
     const keyToCheck = apiKey || queryApiKey;
 

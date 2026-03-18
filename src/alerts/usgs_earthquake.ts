@@ -224,9 +224,10 @@ async function saveEarthquakeToFile(earthquake: any): Promise<void> {
 }
 
 /**
- * Main USGS earthquake alert monitoring function
+ * Main USGS earthquake alert monitoring function.
+ * Exported for use by thin orchestrator scripts.
  */
-async function monitorUSGSEarthquakeAlerts(): Promise<void> {
+export async function monitorUSGSEarthquakeAlerts(): Promise<void> {
   logger.info('=== Starting USGS Earthquake Alert Monitoring ===');
   
   const earthquakes = await fetchUSGSOverlayEarthquakes();

@@ -2,17 +2,38 @@
 
 ## Overview
 
-Shared utilities used by multiple modules: centralized path resolution and data loading.
+Data access layer shared by all `src/` modules. Centralizes output file paths and data loading so no module hardcodes paths or re-implements file I/O logic.
 
-## Files
+## Convention
+
+- **Never hardcode paths** — always import from `paths.ts`.
+- **Never read files directly** — use `data.ts` loader functions.
+- These modules have **no side effects** on import (no global state, no startup I/O).
+
+## Modules
 
 | File | Purpose | Tests |
-|---|---|---|
-| `paths.ts` | All output file/directory path constants + `article(guid)` function | `tests/shared-paths.test.ts` |
-| `data.ts` | Data loading functions: `loadToc`, `loadManifest`, `loadAllArticles`, `loadAllSections`, `searchSections` | `tests/shared-data.test.ts` |
+| :--- | :--- | :--- |
+| `paths.ts` | Centralized `paths` object with all output file/dir paths | `tests/shared-paths.test.ts` |
+| `data.ts` | Async data loaders: `loadToc()`, `loadManifest()`, `loadArticle()`, `loadAllArticles()`, `loadAllSections()` | `tests/shared-data.test.ts` |
 
-## Key Patterns
+## Public API
 
-- Always use `paths.article(guid)` instead of constructing article paths manually.
-- `loadAllSections()` returns a flat array of `FlatSection` (section + parent article metadata), used by search and analytics.
-- `searchSections(query)` does case-insensitive substring matching across section number, title, and text.
+```typescript
+import { paths } from "../shared/paths.js";
+import { loadToc, loadManifest, loadAllSections } from "../shared/data.js";
+
+const toc = await loadToc();           // TocNode
+const manifest = await loadManifest(); // ScrapeManifest
+const sections = await loadAllSections(); // SectionContent[]
+
+paths.toc          // → "output/toc.json"
+paths.manifest     // → "output/manifest.json"
+paths.output       // → "output/"
+paths.articles     // → "output/articles/"
+paths.article(guid) // → "output/articles/<guid>.json"
+```
+
+## Data Dependencies
+
+All loaders require the `output/` directory to be populated by `bun run scrape`. Tests that depend on real data gracefully return empty/default results when output data is absent.
