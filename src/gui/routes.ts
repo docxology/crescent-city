@@ -407,6 +407,87 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
     return json({ query: q, count: results.length, domains: results });
   }
 
+  // GET /api/toc/breadcrumb?guid=... — return full ancestry path for a TOC node
+  if (path === "/api/toc/breadcrumb") {
+    const guid = url.searchParams.get("guid") ?? "";
+    if (!guid.trim()) return json({ error: "No guid provided" }, 400);
+    try {
+      const toc = await loadToc();
+
+      type Crumb = { guid: string; title: string; type: string; level: number };
+
+      /** Recursively find the path from root to target guid */
+      function findPath(
+        nodes: any[],
+        targetGuid: string,
+        path: Crumb[],
+        level: number
+      ): Crumb[] | null {
+        for (const node of nodes) {
+          const current: Crumb = {
+            guid: node.guid ?? node.id ?? "",
+            title: node.title ?? node.label ?? "(untitled)",
+            type: node.type ?? "node",
+            level,
+          };
+          if (current.guid === targetGuid) return [...path, current];
+          if (node.children?.length > 0) {
+            const found = findPath(node.children, targetGuid, [...path, current], level + 1);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      const rootNodes = Array.isArray(toc) ? toc : (toc.children ?? [toc]);
+      const breadcrumb = findPath(rootNodes, guid, [], 0);
+
+      if (!breadcrumb) {
+        return json({ error: `GUID "${guid}" not found in TOC` }, 404);
+      }
+
+      return json({ guid, breadcrumb, depth: breadcrumb.length });
+    } catch (err: any) {
+      return json({ error: `TOC breadcrumb failed: ${err.message}` }, 500);
+    }
+  }
+
+  // GET /api/domain/:id/search?q=... — BM25 search scoped to a domain's sections
+  const domainSearchMatch = path.match(/^\/api\/domain\/([a-z-]+)\/search$/);
+  if (domainSearchMatch) {
+    const q = url.searchParams.get("q") ?? "";
+    if (!q.trim()) return json({ error: "No query provided" }, 400);
+    const domainId = domainSearchMatch[1];
+    const { getDomainById } = await import("../domains.js");
+    const domain = getDomainById(domainId);
+    if (!domain) return json({ error: `Domain "${domainId}" not found` }, 404);
+
+    // Build allowlist of section number prefixes from domain topic sources
+    const sectionPrefixes = new Set<string>(
+      domain.topics.flatMap(t =>
+        t.sources.map(s => s.sectionNumber.replace(/[§\s]/g, "").trim())
+      )
+    );
+
+    // Run BM25 search then filter to domain sections
+    const limit = Math.min(100, parseInt(url.searchParams.get("limit") ?? "20", 10));
+    const highlight = url.searchParams.get("highlight") === "true";
+    const paged = search(q, { limit: 500, highlight });
+
+    // Filter results to those whose section number matches a domain source prefix
+    const domainResults = paged.results.filter(r => {
+      const num = r.section.number.replace(/[§\s]/g, "").trim();
+      return [...sectionPrefixes].some(p => num.startsWith(p.split(".").slice(0, 2).join(".")));
+    }).slice(0, limit);
+
+    return json({
+      domain: domainId,
+      query: q,
+      total: domainResults.length,
+      results: domainResults,
+    });
+  }
+
   // GET /api/domain/:id/sections — cross-reference domain topics to code sections
   const domainSectionsMatch = path.match(/^\/api\/domain\/([a-z-]+)\/sections$/);
   if (domainSectionsMatch) {

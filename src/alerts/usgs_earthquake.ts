@@ -22,6 +22,19 @@ const CRESCENT_CITY_LNG = -124.2028;
 const SEARCH_RADIUS_KM = 200;
 const MIN_MAGNITUDE = 4.0;
 
+/**
+ * Cascadia Subduction Zone approximate boundary polygon.
+ * Runs offshore from Cape Mendocino (38°N) to northern Vancouver Island (50°N),
+ * extending from the coast (121°W) to ~128°W.
+ *
+ * Returns true if the earthquake epicenter falls within this zone.
+ * Used to flag potential plate-boundary megaquakes that could generate
+ * tsunamis affecting Crescent City.
+ */
+function isCascadiaEvent(lat: number, lng: number): boolean {
+  return lat >= 38.0 && lat <= 50.0 && lng >= -128.5 && lng <= -121.0;
+}
+
 // Persistent alert history JSONL path
 const HISTORY_DIR = join(process.cwd(), 'output', 'alerts', 'earthquake');
 const HISTORY_FILE = join(HISTORY_DIR, 'history.jsonl');
@@ -204,6 +217,7 @@ async function fetchUSGSOverlayEarthquakes(): Promise<Array<{
 function appendEarthquakeHistory(earthquake: any, alertLevel: string): void {
   try {
     mkdirSync(HISTORY_DIR, { recursive: true });
+    const cascadia = isCascadiaEvent(earthquake.latitude, earthquake.longitude);
     const record = JSON.stringify({
       id: earthquake.id,
       magnitude: earthquake.magnitude,
@@ -213,6 +227,7 @@ function appendEarthquakeHistory(earthquake: any, alertLevel: string): void {
       latitude: earthquake.latitude,
       longitude: earthquake.longitude,
       tsunami: earthquake.tsunami,
+      cascadia,
       alertLevel,
       time: new Date(earthquake.time).toISOString(),
       fetchedAt: new Date().toISOString(),

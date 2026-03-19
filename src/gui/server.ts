@@ -63,6 +63,16 @@ const server = Bun.serve({
     // SPA fallback
     return new Response(Bun.file(`${STATIC_DIR}index.html`));
   },
+  error(err) {
+    // Catch EADDRINUSE (port already in use) and give a helpful message
+    if ((err as any).code === 'EADDRINUSE') {
+      log.error(`Port ${PORT} is already in use.`, {
+        suggestion: `Run with a different port: PORT=${PORT + 1} bun run gui`,
+      });
+      process.exit(1);
+    }
+    throw err;
+  },
 });
 
 log.info(`Municipal Code Viewer running at http://localhost:${server.port}`);

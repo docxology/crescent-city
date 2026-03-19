@@ -1,6 +1,6 @@
 {
   "name": "crescent-city-municipal-code",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Comprehensive scraper, verifier, exporter, viewer, and RAG chat for Crescent City, CA municipal code from ecode360.com",
   "type": "module",
   "scripts": {
@@ -26,6 +26,7 @@
     "cron-setup": "bash scripts/cron-setup.sh",
     "coverage": "bun run scripts/run-coverage.ts",
     "readability": "bun run scripts/run-readability.ts",
+    "report": "bun run src/monthly_report.ts",
     "test": "bun test tests/"
   },
   "dependencies": {

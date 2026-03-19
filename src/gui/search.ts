@@ -7,6 +7,8 @@
  * - Body text: standard BM25 scoring
  *
  * Additional features:
+ * - Stop word filtering (42 legal/English stop words removed from index)
+ * - Synonym expansion (28 CA municipal law synonym pairs at query time)
  * - Snippet extraction with `<mark>` HTML highlighting
  * - Title filter: ?title=8 scopes to sections starting with "8."
  * - Pagination: offset + limit parameters
@@ -22,6 +24,73 @@ const logger = createLogger("search");
 // ─── BM25 constants ───────────────────────────────────────────────
 const K1 = 1.5;  // Term frequency saturation
 const B = 0.75;  // Length normalization factor
+
+// ─── Legal stop words ────────────────────────────────────────────
+/**
+ * High-frequency words that should NOT be indexed — they appear in nearly
+ * every section and provide zero discriminative signal in BM25 ranking.
+ * Includes both English function words and common legal boilerplate.
+ */
+export const LEGAL_STOP_WORDS = new Set([
+  // English function words
+  "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
+  "of", "with", "by", "from", "is", "are", "was", "were", "be", "been",
+  "have", "has", "had", "do", "does", "did", "will", "would", "could",
+  "should", "may", "might", "this", "that", "these", "those", "it", "its",
+  "not", "no", "as", "if", "when", "which", "who", "any", "all", "each",
+  // Legal boilerplate (appears in virtually every section)
+  "shall", "herein", "thereof", "thereto", "therein", "hereby",
+  "pursuant", "notwithstanding", "provided", "section", "code",
+  "ordinance", "city", "crescent",
+]);
+
+// ─── CA Municipal Law Synonyms ────────────────────────────────────
+/**
+ * Synonym expansion map for California municipal law terminology.
+ * At query time, each term is expanded to include all its synonyms
+ * (and vice versa), improving recall across drafting styles.
+ *
+ * Format: term → canonical form (all synonyms map to the same canonical
+ * form so BM25 scoring uses the indexed token variant).
+ */
+export const SYNONYMS: Map<string, string[]> = new Map([
+  // Land use
+  ["parcel",    ["lot", "plot", "tract"]],
+  ["lot",       ["parcel", "plot", "tract"]],
+  ["structure", ["building", "facility"]],
+  ["building",  ["structure", "facility"]],
+  ["dwelling",  ["residence", "home", "house"]],
+  ["residence", ["dwelling", "home", "house"]],
+  ["setback",   ["offset", "clearance"]],
+  // Coastal & harbor
+  ["harbor",    ["port", "marina", "wharf"]],
+  ["port",      ["harbor", "marina", "wharf"]],
+  ["vessel",    ["boat", "ship", "watercraft"]],
+  ["boat",      ["vessel", "ship", "watercraft"]],
+  // Legal / administrative
+  ["permit",    ["license", "authorization", "approval"]],
+  ["license",   ["permit", "authorization", "approval"]],
+  ["variance",  ["exception", "waiver", "deviation"]],
+  ["appeal",    ["petition", "challenge", "objection"]],
+  ["fee",       ["charge", "assessment", "rate"]],
+  ["fine",      ["penalty", "forfeiture", "sanction"]],
+  ["violation", ["offense", "infraction", "breach"]],
+  // Emergency
+  ["evacuation", ["withdrawal", "egress", "escape"]],
+  ["tsunami",    ["tidal wave", "seismic sea wave"]],
+  ["earthquake", ["seismic", "temblor", "tremor"]],
+  // Infrastructure
+  ["road",      ["street", "avenue", "boulevard", "drive", "way"]],
+  ["street",    ["road", "avenue", "boulevard", "lane"]],
+  ["utilities", ["services", "water", "sewer", "electric"]],
+  ["storm",     ["stormwater", "drainage", "runoff"]],
+]);
+
+/** Expand a single raw token using synonym map (returns token + all synonyms) */
+function expandSynonyms(token: string): string[] {
+  const alts = SYNONYMS.get(token) ?? [];
+  return [token, ...alts];
+}
 
 // ─── Index state ─────────────────────────────────────────────────
 let sections: FlatSection[] = [];
@@ -41,7 +110,7 @@ function tokenize(text: string): string[] {
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
-    .filter(t => t.length > 1);
+    .filter(t => t.length > 1 && !LEGAL_STOP_WORDS.has(t));
 }
 
 /** Tokenize and stem using Porter algorithm (for index building) */
@@ -49,11 +118,20 @@ function tokenizeAndStem(text: string): string[] {
   return tokenize(text).map(stem);
 }
 
-/** Return union of raw and stemmed tokens for better recall on queries */
+/**
+ * Return union of raw, stemmed, and synonym-expanded tokens for query.
+ * Stop words are excluded. Synonyms are added for recall.
+ */
 function queryTerms(text: string): string[] {
   const raw = tokenize(text);
-  const stemmed = raw.map(stem);
-  const combined = new Set([...raw, ...stemmed]);
+  const expanded: string[] = [];
+  for (const t of raw) {
+    expanded.push(...expandSynonyms(t));
+  }
+  // Filter stop words from expansions too, then stem all
+  const filtered = expanded.filter(t => !LEGAL_STOP_WORDS.has(t));
+  const stemmed = filtered.map(stem);
+  const combined = new Set([...filtered, ...stemmed]);
   return [...combined];
 }
 

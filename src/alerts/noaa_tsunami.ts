@@ -6,14 +6,56 @@
  */
 import { createLogger } from '../logger.js';
 import { computeSha256 } from '../utils.js';
+import { appendFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 const logger = createLogger('noaa_tsunami_alert');
 
 // NOAA CAP feed for tsunami warnings (Pacific Coast/Alaska region)
 const NOAA_TSUNAMI_CAP_URL = 'https://api.weather.gov/alerts/active?event=Tsunami Warning&region=CA';
 
-// Cache to prevent duplicate processing of the same alert
-const processedAlerts = new Set<string>();
+// Persistent alert history JSONL path
+const HISTORY_DIR = join(process.cwd(), 'output', 'alerts', 'tsunami');
+const HISTORY_FILE = join(HISTORY_DIR, 'history.jsonl');
+
+/** Load processed alert IDs from persistent history to prevent cross-run duplicates */
+function loadProcessedIds(): Set<string> {
+  const ids = new Set<string>();
+  if (!existsSync(HISTORY_FILE)) return ids;
+  try {
+    const lines = readFileSync(HISTORY_FILE, 'utf-8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try { ids.add(JSON.parse(line).id); } catch { /* skip corrupt lines */ }
+    }
+  } catch { /* ignore read errors */ }
+  return ids;
+}
+
+/** Append a tsunami alert to the persistent JSONL history log */
+function appendTsunamiHistory(alert: NOAAAlertProperties, threatLevel: string): void {
+  try {
+    mkdirSync(HISTORY_DIR, { recursive: true });
+    const record = JSON.stringify({
+      id: alert.id,
+      event: alert.event,
+      severity: alert.severity,
+      certainty: alert.certainty,
+      urgency: alert.urgency,
+      threatLevel,
+      effective: alert.effective,
+      expires: alert.expires,
+      headline: alert.headline,
+      areaDesc: alert.areaDesc,
+      fetchedAt: new Date().toISOString(),
+    });
+    appendFileSync(HISTORY_FILE, record + '\n', 'utf-8');
+  } catch (err) {
+    logger.warn('Failed to append tsunami alert history', { error: String(err) });
+  }
+}
+
+// Cache to prevent duplicate processing (seeded from JSONL history)
+const processedAlerts = loadProcessedIds();
 
 /**
  * Interface for NOAA CAP alert properties
@@ -211,7 +253,14 @@ export async function monitorNOAATsunamiAlerts(): Promise<void> {
     // Mark as processed
     processedAlerts.add(alert.id);
     newAlertsCount++;
-    
+
+    // Classify threat level
+    const threatLevel = alert.event.toLowerCase().includes('warning') ? 'warning'
+      : alert.event.toLowerCase().includes('watch') ? 'watch' : 'advisory';
+
+    // Persist to JSONL history immediately
+    appendTsunamiHistory(alert, threatLevel);
+
     logger.warn('NEW TSUNAMI ALERT FOR CRESCENT CITY DETECTED!', {
       id: alert.id,
       headline: alert.headline,
@@ -220,25 +269,24 @@ export async function monitorNOAATsunamiAlerts(): Promise<void> {
       urgency: alert.urgency,
       effective: alert.effective,
       expires: alert.expires,
-      area: alert.areaDesc
+      area: alert.areaDesc,
+      threatLevel,
     });
-    
+
     // Save alert to file
     await saveAlertToFile(alert);
-    
-    // TODO: Trigger automated notifications via existing monitoring channels
-    // This could include sending to news_monitor output, triggering alerts in the RAG system, etc.
+
     logger.info('Would trigger automated notifications (email, SMS, dashboard update, etc.)', {
       alertId: alert.id
     });
   }
-  
+
   if (newAlertsCount === 0) {
     logger.info('No new relevant NOAA tsunami alerts found');
   } else {
     logger.info(`Processed ${newAlertsCount} new relevant NOAA tsunami alerts`);
   }
-  
+
   logger.info('=== NOAA Tsunami Alert Monitoring Complete ===');
 }
 
