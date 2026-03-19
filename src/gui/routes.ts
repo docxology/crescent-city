@@ -1,6 +1,6 @@
 /** API route handlers for the GUI server */
 import { join } from "path";
-import { loadToc, loadArticle, loadManifest, loadAllSections } from "../shared/data.js";
+import { loadToc, loadArticle, loadSection, loadManifest, loadAllSections } from "../shared/data.js";
 import { search, getIndexedCount, type PagedSearchResult } from "./search.js";
 import { createLogger } from "../logger.js";
 import { llmConfig } from "../llm/config.js";
@@ -63,7 +63,7 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
   if (path === "/api/toc") {
     try {
       const toc = await loadToc();
-      return json(toc);
+      return jsonWithETag(toc, req);
     } catch {
       return json({ error: "TOC not found. Run the scraper first." }, 404);
     }
@@ -85,20 +85,9 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
   const sectionMatch = path.match(/^\/api\/section\/([a-zA-Z0-9_-]+)$/);
   if (sectionMatch) {
     try {
-      const guid = sectionMatch[1];
-      const manifest = await loadManifest();
-      for (const entry of Object.values(manifest.articles)) {
-        const article = await loadArticle(entry.guid);
-        const section = article.sections.find((s) => s.guid === guid);
-        if (section) {
-          return json({
-            ...section,
-            articleGuid: article.guid,
-            articleTitle: article.title,
-          });
-        }
-      }
-      return json({ error: "Section not found" }, 404);
+      const section = await loadSection(sectionMatch[1]);
+      if (!section) return json({ error: "Section not found" }, 404);
+      return json(section);
     } catch (err) {
       log.error(`Error loading section ${sectionMatch[1]}`, { error: String(err) });
       return json({ error: "Section not found" }, 404);
@@ -173,7 +162,7 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
   if (path === "/api/stats") {
     try {
       const manifest = await loadManifest();
-      return json({
+      const statsData = {
         municipality: manifest.municipality,
         articleCount: Object.keys(manifest.articles).length,
         sectionCount: manifest.sectionCount,
@@ -181,7 +170,18 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
         indexedSections: getIndexedCount(),
         scrapedAt: manifest.scrapedAt,
         completedAt: manifest.completedAt,
-      });
+      };
+      return jsonWithETag(statsData, req);
+    } catch {
+      return json({ error: "Manifest not found. Run the scraper first." }, 404);
+    }
+  }
+
+  // GET /api/stats/count — lightweight section count (no full section load)
+  if (path === "/api/stats/count") {
+    try {
+      const manifest = await loadManifest();
+      return json({ count: manifest.sectionCount });
     } catch {
       return json({ error: "Manifest not found. Run the scraper first." }, 404);
     }
@@ -345,7 +345,10 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
       const { existsSync } = await import("fs");
       const { readFile } = await import("fs/promises");
       if (existsSync("output/readability.json")) {
-        return json(JSON.parse(await readFile("output/readability.json", "utf-8")));
+        return jsonWithETag(
+          JSON.parse(await readFile("output/readability.json", "utf-8")),
+          req
+        );
       }
       const { scoreCorpusReadability } = await import("../shared/readability.js");
       const all = await loadAllSections();
@@ -353,14 +356,15 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
       const avg = scored.length > 0
         ? Math.round(scored.reduce((s, r) => s + r.score.gradeLevel, 0) / scored.length * 10) / 10
         : 0;
-      return json({
+      const payload = {
         computedAt: new Date().toISOString(),
         totalSections: all.length,
         scored: scored.length,
         averageGradeLevel: avg,
         hardestSections: scored.slice(0, 10),
         easiestSections: scored.slice(-10).reverse(),
-      });
+      };
+      return jsonWithETag(payload, req);
     } catch (err: any) {
       return json({ error: `Readability scoring failed: ${err.message}` }, 500);
     }
@@ -372,10 +376,13 @@ async function routeRequest(path: string, url: URL, req?: Request): Promise<Resp
       const { existsSync } = await import("fs");
       const { readFile } = await import("fs/promises");
       if (existsSync("output/domain-coverage.json")) {
-        return json(JSON.parse(await readFile("output/domain-coverage.json", "utf-8")));
+        return jsonWithETag(
+          JSON.parse(await readFile("output/domain-coverage.json", "utf-8")),
+          req
+        );
       }
       const { computeDomainCoverage } = await import("../domains/coverage.js");
-      return json(await computeDomainCoverage());
+      return jsonWithETag(await computeDomainCoverage(), req);
     } catch (err: any) {
       return json({ error: `Coverage computation failed: ${err.message}` }, 500);
     }

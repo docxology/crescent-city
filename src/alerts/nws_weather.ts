@@ -2,12 +2,12 @@
 /**
  * NWS Weather Alert Processing for Crescent City.
  * Monitors National Weather Service alerts for coastal flood, high wind, and storm warnings,
- * parses polygon-affected areas for Crescent City specificity, categorizes by severity 
+ * parses polygon-affected areas for Crescent City specificity, categorizes by severity
  * (advisory, watch, warning), and stores in output/alerts/weather/ with standardized format.
  */
 import { createLogger } from '../logger.js';
-import { computeSha256 } from '../utils.js';
-import { appendFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
+import { appendFileSync, existsSync, readFileSync, mkdirSync, writeFileSync } from 'fs';
+import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 
 const logger = createLogger('nws_weather_alert');
@@ -164,7 +164,12 @@ function pointInPolygon(point: { lat: number; lng: number }, polygon: number[][]
 }
 
 /**
- * Check if an alert affects Crescent City area
+ * Check if an alert affects Crescent City area.
+ *
+ * NOTE: This keyword list is deliberately broader than noaa_tsunami.ts because NWS
+ * weather alerts commonly use generic zone names ("coastal", "marine", "CAZ006")
+ * rather than city-specific names. Tsunami alerts already pre-filter by event type
+ * at the API level, so a tighter keyword set is sufficient there.
  */
 function isCrescentCityRelevant(alert: {
   areaDesc: string;
@@ -185,7 +190,7 @@ function isCrescentCityRelevant(alert: {
     'ca',
     'california',
     'coastal',
-    'marine'
+    'marine',
   ];
   
   const areaDescLower = alert.areaDesc.toLowerCase();
@@ -260,27 +265,20 @@ function getAlertSeverityLevel(severity: string, certainty: string, urgency: str
  * Save alert to file for historical tracking
  */
 async function saveAlertToFile(alert: any, severityLevel: 'advisory' | 'watch' | 'warning'): Promise<void> {
-  const fs = await import('fs/promises');
-  const path = await import('path');
-  
-  const dataDir = path.join(process.cwd(), 'output', 'alerts', 'weather', severityLevel);
-  try {
-    await fs.mkdir(dataDir, { recursive: true });
-  } catch (e) {
-    // Directory might already exist
-  }
-  
+  const dataDir = join(process.cwd(), 'output', 'alerts', 'weather', severityLevel);
+  await mkdir(dataDir, { recursive: true });
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const alertIdSafe = alert.id.replace(/[^\w\-]/g, '_');
-  const filename = path.join(dataDir, `alert-${alertIdSafe}-${timestamp}.json`);
-  
+  const filename = join(dataDir, `alert-${alertIdSafe}-${timestamp}.json`);
+
   const alertData = {
     fetchedAt: new Date().toISOString(),
     alert: alert,
-    severityLevel: severityLevel
+    severityLevel: severityLevel,
   };
-  
-  await fs.writeFile(filename, JSON.stringify(alertData, null, 2));
+
+  await writeFile(filename, JSON.stringify(alertData, null, 2));
   logger.info(`Saved NWS weather alert to ${filename}`);
 }
 
@@ -365,27 +363,25 @@ export async function monitorNWSWeatherAlerts(): Promise<void> {
       // Persist to JSONL history
       appendWeatherHistory(alert, severityLevel);
 
-      // Log based on severity level
-      let logLevel = 'info';
-      if (severityLevel === 'warning') logLevel = 'warning';
-      if (severityLevel === 'watch') logLevel = 'warn';
-
-      logger.log(
-        logLevel,
-        `NEW NWS WEATHER ALERT FOR CRESCENT CITY (${severityLevel.toUpperCase()})`,
-        {
-          id: alert.id,
-          event: alert.event,
-          severity: alert.severity,
-          certainty: alert.certainty,
-          urgency: alert.urgency,
-          effective: alert.effective,
-          expires: alert.expires,
-          area: alert.areaDesc,
-          headline: alert.headline,
-          severityLevel
-        }
-      );
+      // Log based on severity level (logger has no generic .log() — dispatch explicitly)
+      const logData = {
+        id: alert.id,
+        event: alert.event,
+        severity: alert.severity,
+        certainty: alert.certainty,
+        urgency: alert.urgency,
+        effective: alert.effective,
+        expires: alert.expires,
+        area: alert.areaDesc,
+        headline: alert.headline,
+        severityLevel,
+      };
+      const logMsg = `NEW NWS WEATHER ALERT FOR CRESCENT CITY (${severityLevel.toUpperCase()})`;
+      if (severityLevel === 'warning') {
+        logger.warn(logMsg, logData);
+      } else {
+        logger.info(logMsg, logData);
+      }
 
       // Save alert to file
       await saveAlertToFile(alert, severityLevel);

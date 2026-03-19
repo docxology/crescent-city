@@ -7,6 +7,7 @@ export const paths = {
   toc: `${OUTPUT_DIR}/toc.json`,
   manifest: `${OUTPUT_DIR}/manifest.json`,
   verificationReport: `${OUTPUT_DIR}/verification-report.json`,
+  monitorReport: `${OUTPUT_DIR}/monitor-report.json`,
   consolidatedJson: `${OUTPUT_DIR}/crescent-city-code.json`,
   plainText: `${OUTPUT_DIR}/crescent-city-code.txt`,
   sectionIndex: `${OUTPUT_DIR}/section-index.csv`,

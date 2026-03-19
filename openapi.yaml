@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Crescent City Municipal Code API
   description: REST API for accessing Crescent City, CA municipal code and intelligence system
-  version: 1.3.0
+  version: 1.4.0
   contact:
     name: Crescent City Intelligence System
     url: https://github.com/docxology/crescent-city
@@ -630,6 +630,23 @@ paths:
                 properties:
                   status: {type: string, example: ok}
                   timestamp: {type: string, format: date-time}
+  /api/stats/count:
+    get:
+      summary: Lightweight section count
+      description: Returns only the section count from the manifest without loading all sections. For health checks and status polling.
+      operationId: getSectionCount
+      tags: [Statistics]
+      responses:
+        '200':
+          description: Section count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: {type: integer, example: 2194}
+        '404': {description: Manifest not found}
+
 
 components:
   schemas:

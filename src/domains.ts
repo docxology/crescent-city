@@ -4,35 +4,17 @@
  *
  * Each domain contains curated intelligence that enhances the RAG pipeline
  * by providing context beyond what's in the raw municipal code text.
+ *
+ * Interfaces are canonically defined in types.ts; re-exported here for
+ * backward compatibility with existing imports.
  */
+import type {
+  DomainSource,
+  DomainTopic,
+  IntelligenceDomain,
+} from "./types.js";
 
-export interface DomainSource {
-  /** Municipal code section number (e.g., "§ 8.04.010") */
-  sectionNumber: string;
-  /** Brief description of relevance */
-  relevance: string;
-}
-
-export interface DomainTopic {
-  name: string;
-  description: string;
-  /** Cross-references to municipal code sections */
-  sources: DomainSource[];
-  /** External reference URLs */
-  externalRefs?: string[];
-  /** Tags for search/filtering */
-  tags: string[];
-}
-
-export interface IntelligenceDomain {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  topics: DomainTopic[];
-  /** Last updated timestamp */
-  updatedAt: string;
-}
+export type { DomainSource, DomainTopic, IntelligenceDomain };
 
 /** All intelligence domains */
 export const domains: IntelligenceDomain[] = [

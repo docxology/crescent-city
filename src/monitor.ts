@@ -16,19 +16,9 @@ import { createLogger } from "./logger.js";
 import { computeSha256 } from "./utils.js";
 import { paths } from "./shared/paths.js";
 import { loadToc, loadManifest, loadAllArticles } from "./shared/data.js";
-import type { ArticlePage } from "./types.js";
+import type { ArticlePage, TocNode, MonitorReport } from "./types.js";
 
 const log = createLogger("monitor");
-
-export interface MonitorReport {
-  timestamp: string;
-  articlesChecked: number;
-  hashMismatches: string[];
-  missingSections: string[];
-  newSections: string[];
-  overallStatus: "clean" | "changed" | "error";
-  summary: string;
-}
 
 /** Check SHA-256 hashes of all saved article files */
 export async function checkHashes(): Promise<{
@@ -71,7 +61,7 @@ export async function checkSectionCoverage(): Promise<{
 
   // Collect all section GUIDs from the TOC
   const tocSections = new Set<string>();
-  function walk(node: any) {
+  function walk(node: TocNode) {
     if (node.type === "section" && node.guid) {
       tocSections.add(node.guid);
     }
@@ -140,9 +130,8 @@ export async function runMonitor(): Promise<MonitorReport> {
   };
 
   // Save report
-  const reportPath = paths.output + "/monitor-report.json";
-  await writeFile(reportPath, JSON.stringify(report, null, 2));
-  log.info(`Report saved to ${reportPath}`);
+  await writeFile(paths.monitorReport, JSON.stringify(report, null, 2));
+  log.info(`Report saved to ${paths.monitorReport}`);
   log.info(`Overall: ${report.overallStatus.toUpperCase()} — ${report.summary}`);
 
   return report;

@@ -7,8 +7,8 @@
  * with GeoJSON formatting.
  */
 import { createLogger } from '../logger.js';
-import { computeSha256 } from '../utils.js';
-import { appendFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
+import { appendFileSync, existsSync, readFileSync, mkdirSync, writeFileSync } from 'fs';
+import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 
 const logger = createLogger('usgs_earthquake_alert');
@@ -239,30 +239,29 @@ function appendEarthquakeHistory(earthquake: any, alertLevel: string): void {
 }
 
 /**
- * Save earthquake to file for historical tracking
- * @deprecated Use appendEarthquakeHistory for lightweight persistent logging
+ * Save earthquake GeoJSON to file for historical tracking.
+ * Each earthquake is stored as a Feature with full properties and geometry.
+ * Primary persistence is via appendEarthquakeHistory (JSONL); this provides
+ * a human-readable per-event GeoJSON for GIS tooling.
  */
 async function saveEarthquakeToFile(earthquake: any): Promise<void> {
-  const fs = await import('fs/promises');
-  const path = await import('path');
-
-  const dataDir = path.join(process.cwd(), 'output', 'alerts', 'earthquake');
-  try { await fs.mkdir(dataDir, { recursive: true }); } catch {}
+  const dataDir = join(process.cwd(), 'output', 'alerts', 'earthquake');
+  await mkdir(dataDir, { recursive: true });
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const eqIdSafe = earthquake.id.replace(/[^\w\-]/g, '_');
-  const filename = path.join(dataDir, `earthquake-${eqIdSafe}-${timestamp}.json`);
+  const filename = join(dataDir, `earthquake-${eqIdSafe}-${timestamp}.json`);
 
   const geojson = {
-    type: "Feature",
+    type: 'Feature',
     properties: { ...earthquake, fetchedAt: new Date().toISOString() },
     geometry: {
-      type: "Point",
-      coordinates: [earthquake.longitude, earthquake.latitude, earthquake.depth || 0],
+      type: 'Point',
+      coordinates: [earthquake.longitude, earthquake.latitude, earthquake.depth ?? 0],
     },
   };
-  await fs.writeFile(filename, JSON.stringify({ fetchedAt: new Date().toISOString(), earthquake, geojson }, null, 2));
-  logger.info(`Saved earthquake alert to ${filename}`);
+  await writeFile(filename, JSON.stringify({ fetchedAt: new Date().toISOString(), earthquake, geojson }, null, 2));
+  logger.info(`Saved earthquake GeoJSON to ${filename}`);
 }
 
 /**
@@ -296,26 +295,29 @@ export async function monitorUSGSEarthquakeAlerts(): Promise<void> {
     // Persist to JSONL history immediately
     appendEarthquakeHistory(eq, alertLevel);
 
-    logger.log(
-      alertLevel === 'CRITICAL' || alertLevel.includes('TSUNAMI') ? 'warning' : 'info',
-      `NEW EARTHQUAKE DETECTED NEAR CRESCENT CITY`,
-      {
-        id: eq.id,
-        magnitude: eq.magnitude,
-        place: eq.place,
-        depth: eq.depth ? `${eq.depth} km` : 'Unknown depth',
-        distance: `${eq.distanceKm.toFixed(1)} km`,
-        tsunamiPotential: eq.tsunami === 1 ? 'Possible' : eq.tsunami === 2 ? 'Generated' : 'None',
-        alertLevel,
-        time: new Date(eq.time).toISOString()
-      }
-    );
+    // Log at appropriate level (logger has no generic .log() — dispatch explicitly)
+    const logData = {
+      id: eq.id,
+      magnitude: eq.magnitude,
+      place: eq.place,
+      depth: eq.depth ? `${eq.depth} km` : 'Unknown depth',
+      distance: `${eq.distanceKm.toFixed(1)} km`,
+      tsunamiPotential: eq.tsunami === 1 ? 'Possible' : eq.tsunami === 2 ? 'Generated' : 'None',
+      alertLevel,
+      time: new Date(eq.time).toISOString(),
+    };
+    const isCritical = alertLevel === 'CRITICAL' || alertLevel.includes('TSUNAMI');
+    if (isCritical) {
+      logger.warn('NEW EARTHQUAKE DETECTED NEAR CRESCENT CITY', logData);
+    } else {
+      logger.info('NEW EARTHQUAKE DETECTED NEAR CRESCENT CITY', logData);
+    }
 
-    // Save earthquake to file
+    // Save per-event GeoJSON file (lightweight, alongside JSONL history)
     await saveEarthquakeToFile(eq);
 
     logger.info('Would trigger automated notifications (email, SMS, dashboard update, etc.)', {
-      earthquakeId: eq.id
+      earthquakeId: eq.id,
     });
   }
   

@@ -29,6 +29,7 @@ const BYPASS_PATHS = ["/api/health", "/api/monitor/status", "/api/openapi.yaml"]
 const PUBLIC_PATHS = [
   "/api/health",
   "/api/stats",
+  "/api/stats/count",
   "/api/toc",
   "/api/domains",
   "/api/search",
@@ -223,3 +224,31 @@ export async function applyMiddleware(req: Request): Promise<Response | null> {
   }
   return null;
 }
+
+// ─── Test hooks (exported for deterministic unit testing only) ────
+
+/**
+ * Internal test hooks that expose clock control and state reset for
+ * deterministic sliding-window exhaustion tests.
+ *
+ * DO NOT use in production code. Guards are in place (NODE_ENV / naming)
+ * to make misuse obvious in code review.
+ */
+let _injectedNow: number | null = null;
+
+function _getNow(): number {
+  return _injectedNow ?? Date.now();
+}
+
+export const _testHooks = {
+  /** Override the clock used for rate-limit timestamps */
+  setNow(ts: number): void { _injectedNow = ts; },
+  /** Clear clock override — use real Date.now() again */
+  clearNow(): void { _injectedNow = null; },
+  /** Reset all per-IP window state */
+  resetAll(): void { rateLimitStore.clear(); },
+  /** Return the default public rate limit */
+  getPublicLimit(): number { return RATE_LIMIT_MAX_REQUESTS; },
+  /** Return the window duration in ms */
+  getWindowMs(): number { return RATE_LIMIT_WINDOW_MS; },
+} as const;

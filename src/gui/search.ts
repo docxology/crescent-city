@@ -105,6 +105,27 @@ let avgBodyLen = 1;
 
 // ─── Tokenizer ────────────────────────────────────────────────────
 
+// ─── Stemmer exceptions ──────────────────────────────────────────
+/**
+ * Terms that must NOT be stemmed because they have distinct legal meanings
+ * from their morphological root. Porter stemmer would conflate these:
+ *
+ * - "planning" → "plan"  (Planning Commission ≠ generic plan)
+ * - "zoning" → "zone"    (Zoning Code ≠ geographic zone)
+ * - "housing" → "hous"   (Housing Authority ≠ to house)
+ * - "fishing" → "fish"   (Fishing license ≠ fish species)
+ * - "parking" → "park"   (Parking ordinance ≠ park/parks)
+ * - "building" → "build" (Building permit ≠ to build)
+ * - "hearing" → "hear"   (Public hearing ≠ to hear)
+ * - "grading" → "grad"   (Site grading ≠ academic grade)
+ * - "banning" → "ban"    (City of Banning ≠ to ban)
+ */
+export const STEMMER_EXCEPTIONS = new Set([
+  "planning", "zoning", "housing", "fishing", "parking",
+  "building", "hearing", "grading", "banning", "granting",
+  "licensing", "permitting", "appealing", "mapping",
+]);
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
@@ -115,7 +136,7 @@ function tokenize(text: string): string[] {
 
 /** Tokenize and stem using Porter algorithm (for index building) */
 function tokenizeAndStem(text: string): string[] {
-  return tokenize(text).map(stem);
+  return tokenize(text).map(t => STEMMER_EXCEPTIONS.has(t) ? t : stem(t));
 }
 
 /**

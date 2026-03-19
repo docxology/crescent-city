@@ -216,3 +216,76 @@ export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Om
   }
   return result as Omit<T, K>;
 }
+
+// ─── Unicode / Text normalization ────────────────────────────────
+
+/**
+ * Normalize Unicode typographic characters found in scraped legal text
+ * to their plain ASCII equivalents.
+ *
+ * Covers smart quotes, em/en dashes, non-breaking spaces, ellipsis,
+ * and common ligatures (fi, fl, ff, etc.). The section sign (§) is
+ * preserved — it is semantically meaningful in legal text.
+ *
+ * Safe to call multiple times (idempotent).
+ */
+export function normalizeText(text: string): string {
+  return text
+    // Smart quotes → straight
+    .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+    // Dashes → hyphen-minus
+    .replace(/[\u2013\u2014\u2015\u2212]/g, "-")
+    // Non-breaking spaces / thin spaces → regular space
+    .replace(/[\u00A0\u202F\u2009\u2007\u2008\u200B]/g, " ")
+    // Ellipsis → three periods
+    .replace(/\u2026/g, "...")
+    // Common ligatures → plain letters
+    .replace(/\uFB00/g, "ff")
+    .replace(/\uFB01/g, "fi")
+    .replace(/\uFB02/g, "fl")
+    .replace(/\uFB03/g, "ffi")
+    .replace(/\uFB04/g, "ffl")
+    .replace(/[\uFB05\uFB06]/g, "st")
+    // Collapse multiple spaces
+    .replace(/ {2,}/g, " ");
+}
+
+// ─── Data quality ─────────────────────────────────────────────────
+
+export interface SectionLengthOutlier {
+  guid: string;
+  number: string;
+  title: string;
+  wordCount: number;
+  reason: "too_short" | "too_long";
+}
+
+/**
+ * Flag sections that are suspiciously short (<25 words) or long (>5,000 words).
+ *
+ * Short sections (<25 words) may indicate HTML extraction failures where only
+ * a label or heading was captured. Long sections (>5,000 words) may indicate
+ * concatenation errors where multiple sections were merged into one during scraping.
+ *
+ * @param sections - Sections to check
+ * @param minWords - Minimum expected word count (default: 25)
+ * @param maxWords - Maximum expected word count (default: 5000)
+ */
+export function checkSectionLengthOutliers(
+  sections: Array<{ guid: string; number: string; title: string; text: string }>,
+  minWords = 25,
+  maxWords = 5000
+): SectionLengthOutlier[] {
+  const outliers: SectionLengthOutlier[] = [];
+  for (const s of sections) {
+    const wc = countWords(s.text);
+    if (wc < minWords) {
+      outliers.push({ guid: s.guid, number: s.number, title: s.title, wordCount: wc, reason: "too_short" });
+    } else if (wc > maxWords) {
+      outliers.push({ guid: s.guid, number: s.number, title: s.title, wordCount: wc, reason: "too_long" });
+    }
+  }
+  return outliers.sort((a, b) => a.wordCount - b.wordCount);
+}
+

@@ -5,8 +5,8 @@
  * affected areas, and timing, triggers automated notifications, and logs alerts.
  */
 import { createLogger } from '../logger.js';
-import { computeSha256 } from '../utils.js';
 import { appendFileSync, existsSync, readFileSync, mkdirSync } from 'fs';
+import { mkdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 
 const logger = createLogger('noaa_tsunami_alert');
@@ -172,7 +172,12 @@ async function fetchNOAATsunamiAlerts(): Promise<Array<{
 }
 
 /**
- * Check if an alert affects Crescent City area
+ * Check if an alert affects Crescent City area.
+ *
+ * NOTE: This keyword list is tighter than nws_weather.ts by design. Tsunami alerts
+ * are pre-filtered to `event=Tsunami Warning` at the API level, so "california" as
+ * a substring is sufficient; no need for the broad "coastal"/"marine"/"caz006" terms
+ * that NWS weather alerts require to catch zone-coded events.
  */
 function isCrescentCityRelevant(alert: {
   areaDesc: string;
@@ -200,26 +205,19 @@ function isCrescentCityRelevant(alert: {
  * Save alert to file for historical tracking
  */
 async function saveAlertToFile(alert: any): Promise<void> {
-  const fs = await import('fs/promises');
-  const path = await import('path');
-  
-  const dataDir = path.join(process.cwd(), 'output', 'alerts', 'tsunami');
-  try {
-    await fs.mkdir(dataDir, { recursive: true });
-  } catch (e) {
-    // Directory might already exist
-  }
-  
+  const dataDir = join(process.cwd(), 'output', 'alerts', 'tsunami');
+  await mkdir(dataDir, { recursive: true });
+
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const alertIdSafe = alert.id.replace(/[^\w\-]/g, '_');
-  const filename = path.join(dataDir, `alert-${alertIdSafe}-${timestamp}.json`);
-  
+  const filename = join(dataDir, `alert-${alertIdSafe}-${timestamp}.json`);
+
   const alertData = {
     fetchedAt: new Date().toISOString(),
-    alert: alert
+    alert: alert,
   };
-  
-  await fs.writeFile(filename, JSON.stringify(alertData, null, 2));
+
+  await writeFile(filename, JSON.stringify(alertData, null, 2));
   logger.info(`Saved tsunami alert to ${filename}`);
 }
 

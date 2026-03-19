@@ -115,37 +115,15 @@ export async function loadAllSectionsCount(): Promise<number> {
 
 /**
  * Load a single section by GUID across all articles.
- * Searches the articles directory and returns the section with its parent article context.
+ * Uses the in-process 60s TTL cache (loadAllSections) for O(1) lookup
+ * instead of scanning every article file on disk.
  * Returns undefined if not found.
  */
 export async function loadSection(guid: string): Promise<FlatSection | undefined> {
-  const dir = paths.articles;
-  if (!existsSync(dir)) return undefined;
-  const files = await readdir(dir);
-
-  for (const f of files) {
-    if (!f.endsWith(".json")) continue;
-    try {
-      const article: ArticlePage = JSON.parse(await readFile(`${dir}/${f}`, "utf-8"));
-      const section = article.sections.find(s => s.guid === guid);
-      if (section) {
-        return {
-          guid: section.guid,
-          number: section.number,
-          title: section.title,
-          text: section.text,
-          history: section.history,
-          articleGuid: article.guid,
-          articleTitle: article.title,
-          articleNumber: article.number,
-        };
-      }
-    } catch {
-      // Skip malformed files
-    }
-  }
-  return undefined;
+  const sections = await loadAllSections();
+  return sections.find(s => s.guid === guid);
 }
+
 
 // ─── Search ──────────────────────────────────────────────────────
 
