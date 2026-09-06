@@ -1,31 +1,34 @@
 # Agents Guide — `scripts/`
 
-## Overview
+## Thin-Orchestrator Contract
 
-**All files in `scripts/` are thin TypeScript orchestrators.** They contain no business logic — they import from `src/` and call the appropriate functions. Every script is runnable directly via `bun run <script-name>`.
+**Every file in `scripts/` is a thin orchestrator and nothing else.** A script may contain: a shebang, a header docstring, minimal CLI flag parsing, logging setup, and a single delegated call into a `src/<pkg>/` entrypoint. Business, data, analysis, and reporting logic lives in `src/` (importable and tested); scripts are not the place for computation. Scripts run with the repo root as cwd (all `bun run` aliases come from `package.json`) and use real TypeScript imports — never shell glue that subprocesses other scripts.
 
-## Convention
+## Script Inventory
 
-- **No inline logic** — all computation lives in `src/`.
-- **Single responsibility** — one script per functional area.
-- **CI-friendly exit codes** — non-zero on failure or detected changes.
-- **Real imports, not shell glue** — TypeScript `import` instead of `bun run` subprocess calls.
+| Script | npm alias | Delegates to | Emits |
+| :--- | :--- | :--- | :--- |
+| `run-monitor.ts` | `bun run monitor` | `src/monitor.ts` | `output/monitor-report.json` |
+| `run-alerts.ts` | `bun run alerts` | `src/alerts/{noaa_tsunami,usgs_earthquake,nws_weather}.ts` | `output/alerts/{tsunami,earthquake,weather}/` |
+| `run-news.ts` | `bun run news` | `src/news_monitor.ts` | `output/news/` |
+| `run-meetings.ts` | `bun run gov-meetings` | `src/gov_meeting_monitor.ts` | `output/gov_meetings/` |
+| `run-coverage.ts` | `bun run coverage` | `src/domains/coverage.ts` | `output/domain-coverage.json` |
+| `run-readability.ts` | `bun run readability` | `src/shared/readability.ts` (+ `src/shared/data.ts`) | `output/readability.json` |
+| `weekly-check.ts` | `bun run weekly-check` | All monitor/alert/news/meeting entrypoints | `output/weekly-check-summary.json` |
+| `cron-setup.sh` | `bun run cron-setup` | Installs Launchd/crontab entry for `weekly-check` | macOS plist or Linux cron line |
+| `weekly-check.sh` | _(legacy)_ | `bun run monitor` via shell | `output/weekly-check.log` |
 
-## Scripts
+## Gotchas
 
-| Script | npm alias | What it orchestrates |
-| :--- | :--- | :--- |
-| `weekly-check.ts` | `bun run weekly-check` | Full weekly health check: monitor + all alerts + news + meetings |
-| `run-monitor.ts` | `bun run monitor` | Municipal code change detection (`src/monitor.ts`) |
-| `run-alerts.ts` | `bun run alerts` | All three alert monitors concurrently |
-| `run-news.ts` | `bun run news` | RSS news aggregation (`src/news_monitor.ts`) |
-| `run-meetings.ts` | `bun run gov-meetings` | Government meeting scraper (`src/gov_meeting_monitor.ts`) |
-| `weekly-check.sh` | _(legacy)_ | Bash predecessor to `weekly-check.ts` — kept for reference |
+- **Top-level await**: all `.ts` scripts execute at import time (no `main()` wrapper) — that is the established pattern here.
+- **Manual flag parsing**: `run-news.ts` (`--keywords=term1,term2`) and `run-readability.ts` (`--limit=`, `--hardest`, `--easiest`) parse `process.argv` by hand — no arg library.
+- **cron-setup.sh** uses `set -euo pipefail`, supports `--dry-run`, and schedules Sunday 07:00 (the crontab examples in [README.md](README.md) differ deliberately).
+- **weekly-check.sh is legacy shell glue**, kept for reference only. New scripts must be TypeScript thin orchestrators, not shell.
 
 ## Adding New Scripts
 
-1. Create `scripts/<name>.ts`
-2. Import the relevant function(s) from `src/`
-3. Call with minimal argument processing (flags only, no business logic)
-4. Add an npm alias in `package.json`
-5. Document here and in the root `README.md`
+1. Create `scripts/<name>.ts` as a thin orchestrator (flags, logging, one delegated call into `src/`)
+2. Import the relevant function(s) from `src/` — no inline business logic
+3. Add an npm alias in `package.json`
+4. Document here, in [README.md](README.md), and in the root `README.md`
+5. Cover any new reusable logic with tests in `tests/` (logic goes in `src/`, so it is testable)
