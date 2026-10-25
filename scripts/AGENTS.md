@@ -16,14 +16,12 @@
 | `run-readability.ts` | `bun run readability` | `src/shared/readability.ts` (+ `src/shared/data.ts`) | `output/readability.json` |
 | `weekly-check.ts` | `bun run weekly-check` | All monitor/alert/news/meeting entrypoints | `output/weekly-check-summary.json` |
 | `cron-setup.sh` | `bun run cron-setup` | Installs Launchd/crontab entry for `weekly-check` | macOS plist or Linux cron line |
-| `weekly-check.sh` | _(legacy)_ | `bun run monitor` via shell | `output/weekly-check.log` |
 
 ## Gotchas
 
 - **Top-level await**: all `.ts` scripts execute at import time (no `main()` wrapper) — that is the established pattern here.
 - **Manual flag parsing**: `run-news.ts` (`--keywords=term1,term2`) and `run-readability.ts` (`--limit=`, `--hardest`, `--easiest`) parse `process.argv` by hand — no arg library.
-- **cron-setup.sh** uses `set -euo pipefail`, supports `--dry-run`, and schedules Sunday 07:00 (the crontab examples in [README.md](README.md) differ deliberately).
-- **weekly-check.sh is legacy shell glue**, kept for reference only. New scripts must be TypeScript thin orchestrators, not shell.
+- **cron-setup.sh** uses `set -euo pipefail`, supports `--dry-run`, and schedules Sunday 07:00 (the crontab examples in [README.md](README.md) differ deliberately). It is the one shell file allowed here — it installs OS schedules, so it is not a data pipeline.
 
 ## Adding New Scripts
 

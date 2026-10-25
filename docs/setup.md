@@ -146,7 +146,7 @@ The web viewer's chat panel (💬 button) also connects to the RAG pipeline once
 | `bun run chat` | Interactive RAG chat |
 | `bun run query "..."` | Single RAG query |
 | `bun run status` | Check Ollama/ChromaDB/index status |
-| `bun test` | Run tests (135 tests, 15 files) |
+| `bun test` | Run the test suite |
 | `bun run monitor` | Detect municipal code changes |
 
 ---

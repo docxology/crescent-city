@@ -28,7 +28,7 @@ Comprehensive documentation for the full pipeline: scraping, verification, expor
 
 - **Source**: [`src/`](../src/)
 - **Scripts**: [`scripts/`](../scripts/) — thin TypeScript orchestrators
-- **Tests**: [`tests/`](../tests/) — 186 tests across 17 files (zero-mock policy)
+- **Tests**: [`tests/`](../tests/) — zero-mock `bun:test` suite (`bun test`)
 - **Output**: `output/` (gitignored)
 
 ## Updating Docs

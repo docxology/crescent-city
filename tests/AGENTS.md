@@ -34,7 +34,7 @@ bun test --watch      # Watch mode
 | `news_monitor.test.ts` | `src/news_monitor.ts` — error handling, types | 3 |
 | `gov_meeting_monitor.test.ts` | `src/gov_meeting_monitor.ts` — error handling, disk write | 2 |
 
-**Total: 141 pass · 0 fail**
+**Total: 25 test files — run `bun test` for current pass/fail counts.** The table above itemizes the first 17; newer files are `alerts`, `content`, `middleware`, `middleware_sliding_window`, `routes.integration`, `search_enhancements`, `utils_normalization`, and `verify`.
 
 ## Conventions
 

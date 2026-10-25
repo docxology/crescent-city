@@ -14,7 +14,6 @@ Thin orchestrators for the Crescent City pipeline. All business logic lives in `
 | `run-readability.ts` | Flesch-Kincaid readability scoring of all sections | `src/shared/readability.ts`, `src/shared/data.ts` | `bun run readability` |
 | `weekly-check.ts` | Full weekly health check (monitor + alerts + news + meetings) | All of the above entrypoints | `bun run weekly-check` |
 | `cron-setup.sh` | Install Sunday 07:00 schedule (macOS Launchd plist / Linux crontab) for `weekly-check` | shell only | `bun run cron-setup` (`--dry-run` supported) |
-| `weekly-check.sh` | Legacy bash predecessor of `weekly-check.ts` (runs the monitor only) | `bun run monitor` via shell | `./scripts/weekly-check.sh` |
 
 ## Data Flow
 

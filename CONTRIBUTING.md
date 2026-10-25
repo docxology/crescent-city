@@ -6,7 +6,7 @@ Thank you for your interest in contributing! This project is licensed under **CC
 
 1. Fork and clone the repository
 2. Follow [docs/setup.md](docs/setup.md) to set up your environment
-3. Run `bun test` to verify everything works (186 tests, 0 failures)
+3. Run `bun test` to verify everything works (zero-mock suite, must exit clean)
 
 ## Development Workflow
 

@@ -164,8 +164,7 @@ scripts/
   run-alerts.ts         # All alert monitors (concurrent)
   run-news.ts           # RSS news monitor script
   run-meetings.ts       # Government meeting monitor script
-  weekly-check.sh       # Legacy bash wrapper (kept for reference)
-tests/
+tests/                  # bun:test suite (run `bun test`; listed files are the older half of it)
   utils.test.ts         # 22 tests
   constants.test.ts     # 5 tests
   constants-extended.test.ts # 10 tests

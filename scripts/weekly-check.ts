@@ -7,7 +7,7 @@
  *   2. Runs all real-time alert monitors
  *   3. Summarizes results and exits non-zero if any issues found
  *
- * Replaces the legacy weekly-check.sh with a pure TypeScript equivalent
+ * Pure TypeScript weekly health check (supersedes the old bash weekly-check script)
  * that can be fully type-checked and imports directly from src/.
  *
  * Usage:

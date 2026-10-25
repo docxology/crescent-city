@@ -37,9 +37,22 @@ src/
   scrape.ts         # Main scraper orchestrator with resume support
   verify.ts         # Independent verification (SHA-256, section presence, live re-fetch)
   export.ts         # Multi-format exporter (JSON, Markdown, text, CSV)
+  logger.ts         # Structured logger (levels, module tags)
+  monitor.ts        # Municipal code change detection
+  news_monitor.ts   # Local news RSS monitor
+  gov_meeting_monitor.ts # City meeting agenda/minutes monitor
+  monthly_report.ts # Monthly civic health report
+  domains.ts        # Intelligence domain data + search
+  domains/
+    coverage.ts     # Domain cross-reference coverage metrics
+  alerts/           # NOAA tsunami, USGS earthquake, NWS weather, NOAA tides, CDFW fishing
+  api/
+    middleware.ts   # Rate limiting, API key auth, request logging
   shared/
     paths.ts        # Centralized path resolution for output files
     data.ts         # Data loading layer (loadToc, loadArticle, loadAllSections, etc.)
+    porter_stem.ts  # Zero-dependency Porter stemmer for BM25 search
+    readability.ts  # Flesch-Kincaid readability scoring
   gui/
     server.ts       # Bun.serve() HTTP server
     routes.ts       # API route handlers (/api/toc, /api/article/:guid, /api/search, /api/stats, /api/chat, /api/analytics/*, /api/summarize)
@@ -131,6 +144,16 @@ bun run index                # Index sections into ChromaDB (requires Ollama + C
 bun run chat                 # Interactive RAG chat
 bun run query "question"     # Single RAG query
 bun run status               # Show index stats and model info
+bun run monitor              # Detect municipal code changes
+bun run news                 # Local news RSS monitor
+bun run gov-meetings         # City meeting agenda/minute monitor
+bun run alerts               # All hazard alert monitors (tsunami/quake/weather/tides/fishing)
+bun run weekly-check         # Full weekly health check (monitor + alerts + news + meetings)
+bun run report               # Monthly civic health report
+bun run coverage             # Domain coverage metrics
+bun run readability          # Flesch-Kincaid readability scores
+bun test                     # Run the zero-mock test suite
+bun run cron-setup           # Install Sunday 07:00 schedule (Launchd/crontab)
 ```
 
 ## Prerequisites

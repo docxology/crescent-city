@@ -1,6 +1,6 @@
 # TODO — Crescent City Municipal Intelligence
 
-> Remaining development backlog · v1.4.0 · 297 tests passing
+> Remaining development backlog · v1.4.0
 > Jump to: [Phase 1](#phase-1--production-hardening) · [Phase 2](#phase-2--search--query-enhancement) · [Phase 3](#phase-3--monitoring-expansion) · [Phase 4](#phase-4--alert-system) · [Phase 5](#phase-5--intelligence-domains) · [Phase 6](#phase-6--analytics--reporting) · [Phase 7](#phase-7--marine--harbor-intelligence) · [Phase 8](#phase-8--infrastructure) · [Phase 9](#phase-9--gui-enhancements) · [Phase 10](#phase-10--data-quality--freshness)
 
 ---
@@ -221,4 +221,4 @@
 
 ---
 
-_Last updated: 2026-03-19 · v1.4.0 · 297 tests passing_
+_Last updated: 2026-10-25 · v1.4.0_
