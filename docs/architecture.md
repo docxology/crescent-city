@@ -136,25 +136,25 @@ src/
   monitor.ts            # Municipal code change detection
   news_monitor.ts       # RSS news aggregation
   gov_meeting_monitor.ts # Government meeting agenda tracker
-  shared/
+  src/shared/
     paths.ts            # Centralized output path constants
     data.ts             # Data loading layer (loadToc, loadArticle, etc.)
-  gui/
+  src/gui/
     server.ts           # Bun.serve() HTTP server (port 3000)
     routes.ts           # All /api/* route handlers
     search.ts           # In-memory full-text search engine
     analytics.ts        # PCA + K-Means + stats computation
     static/index.html   # Single-page application (no build step)
-  llm/
+  src/llm/
     config.ts           # LLM configuration with env var overrides
     ollama.ts           # Ollama API wrapper
     chroma.ts           # ChromaDB client
     embeddings.ts       # Chunk + embed + index pipeline
     rag.ts              # RAG pipeline (embed → retrieve → generate)
     index.ts            # CLI entry point
-  api/
+  src/api/
     middleware.ts       # Rate limiting + API key auth + request logging
-  alerts/
+  src/alerts/
     noaa_tsunami.ts     # NOAA CAP tsunami alert monitor
     usgs_earthquake.ts  # USGS GeoJSON earthquake monitor
     nws_weather.ts      # NWS weather alert monitor (CAZ006)
