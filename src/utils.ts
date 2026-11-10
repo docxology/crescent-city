@@ -71,22 +71,38 @@ export function uniqBy<T>(arr: T[], key: (item: T) => string): T[] {
 
 // ─── Text processing ─────────────────────────────────────────────
 
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: " ",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  "#39": "'",
+};
+
+/** Decode the entities htmlToText supports in a single pass (no double unescaping). */
+function decodeEntities(text: string): string {
+  return text.replace(/&(nbsp|amp|lt|gt|quot|#39|#\d+);/g, (match, name: string) => {
+    if (name in NAMED_ENTITIES) return NAMED_ENTITIES[name];
+    const code = parseInt(name.slice(1), 10);
+    return Number.isFinite(code) ? String.fromCharCode(code) : match;
+  });
+}
+
+/**
+ * Remove markup tags. Any "<" left over afterwards belongs to malformed or
+ * nested markup (literal "<" in text is always encoded as &lt;), so drop it too.
+ */
+export function stripTags(html: string): string {
+  return html.replace(/<[^>]*>/g, "").replace(/</g, "");
+}
+
 /** Convert HTML to plain text with basic formatting preservation */
 export function htmlToText(html: string): string {
-  return html
+  const withBreaks = html
     .replace(/<div class="para[^"]*">/g, "\n")
-    .replace(/<div class="history">/g, "\n[History: ")
-    .replace(/<span class="loclaw">/g, "")
-    .replace(/<\/span>/g, "")
-    .replace(/<\/div>/g, "")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/<div class="history">/g, "\n[History: ");
+  return decodeEntities(stripTags(withBreaks))
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
