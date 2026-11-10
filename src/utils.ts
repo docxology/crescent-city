@@ -90,11 +90,27 @@ function decodeEntities(text: string): string {
 }
 
 /**
- * Remove markup tags. Any "<" left over afterwards belongs to malformed or
- * nested markup (literal "<" in text is always encoded as &lt;), so drop it too.
+ * Remove markup tags in one linear scan. Everything from a "<" to the next ">"
+ * is dropped; a "<" with no closing ">" is dropped on its own (literal "<" in
+ * text is always encoded as &lt;), so no tag fragment can survive.
  */
 export function stripTags(html: string): string {
-  return html.replace(/<[^>]*>/g, "").replace(/</g, "");
+  let out = "";
+  let pending = ""; // text after an unclosed "<", kept if no ">" follows
+  let inTag = false;
+  for (const ch of html) {
+    if (ch === "<") {
+      inTag = true;
+    } else if (inTag && ch === ">") {
+      inTag = false;
+      pending = "";
+    } else if (inTag) {
+      pending += ch;
+    } else {
+      out += ch;
+    }
+  }
+  return out + pending;
 }
 
 /** Convert HTML to plain text with basic formatting preservation */
