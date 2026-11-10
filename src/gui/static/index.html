@@ -1125,12 +1125,12 @@
 
         html += '<div class="article-sections">';
         for (const s of article.sections) {
-          html += `<div class="article-section" id="section-${s.guid}">
-            <h3>${s.number}: ${s.title}</h3>
+          html += `<div class="article-section" id="section-${escapeHtml(s.guid)}">
+            <h3>${escapeHtml(s.number)}: ${escapeHtml(s.title)}</h3>
             <div class="section-text">${escapeHtml(s.text)}</div>
             ${s.history ? `<div class="section-history">${escapeHtml(s.history)}</div>` : ""}
-            <button class="summarize-btn" onclick="summarizeSection('${s.guid}', this)" data-number="${escapeHtml(s.number)}" data-title="${escapeHtml(s.title)}">✨ Summarize</button>
-            <div id="summary-${s.guid}"></div>
+            <button class="summarize-btn" onclick="summarizeSection(this.dataset.guid, this)" data-guid="${escapeHtml(s.guid)}" data-number="${escapeHtml(s.number)}" data-title="${escapeHtml(s.title)}">✨ Summarize</button>
+            <div id="summary-${escapeHtml(s.guid)}"></div>
           </div>`;
         }
         html += '</div>';
@@ -1152,13 +1152,13 @@
         content.innerHTML = `
           <div class="section-header">
             <div class="article-title">${escapeHtml(section.articleTitle || "")}</div>
-            <h2>${section.number}: ${section.title}</h2>
+            <h2>${escapeHtml(section.number)}: ${escapeHtml(section.title)}</h2>
           </div>
           <div class="section-body">
             <div class="section-text">${escapeHtml(section.text)}</div>
             ${section.history ? `<div class="section-history">${escapeHtml(section.history)}</div>` : ""}
-            <button class="summarize-btn" onclick="summarizeSection('${guid}', this)" data-number="${escapeHtml(section.number)}" data-title="${escapeHtml(section.title)}">✨ Summarize</button>
-            <div id="summary-${guid}"></div>
+            <button class="summarize-btn" onclick="summarizeSection(this.dataset.guid, this)" data-guid="${escapeHtml(guid)}" data-number="${escapeHtml(section.number)}" data-title="${escapeHtml(section.title)}">✨ Summarize</button>
+            <div id="summary-${escapeHtml(guid)}"></div>
           </div>`;
         content.scrollTop = 0;
       } catch {
@@ -1168,7 +1168,8 @@
 
     function escapeHtml(str) {
       if (!str) return "";
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;")
         .replace(/\n/g, "<br>");
     }
 
