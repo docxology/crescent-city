@@ -13,7 +13,7 @@
  * Output: JSON files written to output/news/
  */
 import { createLogger } from './logger.js';
-import { htmlToText } from './utils.js';
+import { htmlToText, stripTags } from './utils.js';
 import { DOMParser } from '@xmldom/xmldom';
 import { mkdir, writeFile, readFile, appendFile } from 'fs/promises';
 import { existsSync } from 'fs';
@@ -141,7 +141,7 @@ export async function fetchRSSFeed(
 
       if (!titleEl || !linkEl) continue;
 
-      const title = titleEl.textContent?.replace(/<[^>]*>/g, '').trim() ?? '';
+      const title = stripTags(titleEl.textContent ?? '').trim();
       const link = linkEl.textContent?.trim() ?? '';
 
       if (!link || seenLinks.has(link)) continue;
