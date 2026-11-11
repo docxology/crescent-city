@@ -222,3 +222,7 @@
 ---
 
 _Last updated: 2026-10-25 · v1.4.0_
+
+## Workflowz review — 2026-11-10
+
+- [ ] **WF-20261110-01 (P2) — Make sliding-window clock injection real and test elapsed time without clearing state.** Change `rateLimitMiddleware` to obtain its timestamp through `_getNow()` instead of bypassing the injected clock with `Date.now()` (`src/api/middleware.ts:124`, `src/api/middleware.ts:239-247`). Replace the test's `resetAll()` simulation with `setNow()` advancement: exhaust the limit at a fixed timestamp, verify another request in the same window is 429, advance beyond `getWindowMs()` without resetting `rateLimitStore`, and verify the next request passes (`tests/middleware_sliding_window.test.ts:62-75`). This makes the checked TODO claim about deterministic clock injection accurate (`TODO.md:12`). **Acceptance probe:** from the repository root run `bun test tests/middleware_sliding_window.test.ts`; expected behavior is that `after window slides, requests pass again` exercises `setNow()` rather than `resetAll()`, retains state across the time advance, and all tests pass, with a production run still using the real clock after `clearNow()`. **Dependencies/constraints:** none; preserve the zero-mock policy, existing 100-request public limit, 429/`Retry-After` behavior, and clear the injected clock between affected tests to prevent leakage.
